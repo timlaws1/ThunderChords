@@ -1,9 +1,9 @@
 {
-  "name": "chords",
+  "name": "thunderchords",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Personal self-hosted chord sheet library",
+  "description": "ThunderChords — personal self-hosted chord sheet library",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",

@@ -206,7 +206,7 @@ $('#offline-save').onclick = async () => {
     const list = await api('/api/songs')
     const [sl, ml] = await Promise.all([api('/api/setlists'), api('/api/medleys')])
     const urls = [
-      '/', '/song', '/setlists', '/setlist', '/medley', '/style.css', '/api.js', '/chords.js', '/music.js', '/sheet.js', '/scroll.js', '/viewer.js', '/song.js', '/app.js',
+      '/', '/song', '/setlists', '/setlist', '/medley', '/style.css', '/theme.js', '/api.js', '/chords.js', '/music.js', '/sheet.js', '/scroll.js', '/viewer.js', '/song.js', '/app.js',
       '/setlists.js', '/setlist.js', '/medley.js', '/reorder.js', '/share-ui.js', '/manifest.webmanifest', '/icon.svg',
       '/api/songs', '/api/setlists', '/api/medleys',
       ...list.flatMap(s => [`/api/songs/${s.id}`, `/api/prefs/${encodeURIComponent('song:' + s.id)}`]),

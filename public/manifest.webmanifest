@@ -1,12 +1,12 @@
 {
-  "name": "Chords",
-  "short_name": "Chords",
+  "name": "ThunderChords",
+  "short_name": "ThunderChords",
   "description": "Personal chord sheet library",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#18202b",
-  "theme_color": "#18202b",
+  "background_color": "#12171f",
+  "theme_color": "#12171f",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },

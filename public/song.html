@@ -4,9 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Chords</title>
+<title>ThunderChords</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.svg">
+<meta name="theme-color" content="#12171f">
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=Syne:600,700|DM+Sans:400,500,600|IBM+Plex+Mono:400,700" rel="stylesheet">
+<script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -18,6 +22,7 @@
   <button id="share" data-mgmt data-needs-net hidden>Share</button>
   <button id="reimport" data-mgmt data-needs-net hidden>Re-import</button>
   <button id="edit" data-mgmt data-needs-net hidden>Edit</button>
+  <button type="button" class="theme-btn noprint" data-theme-toggle>Dark</button>
 </header>
 <div class="sticky noprint">
   <div id="plnav" class="plnav" hidden><button id="plprev">Previous</button><b id="plpos"></b><button id="plnext">Next</button></div>

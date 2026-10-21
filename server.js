@@ -110,12 +110,27 @@ function bundle(type, id) {
 const app = new Hono()
 app.use('*', async (c, next) => { await next(); c.header('X-Robots-Tag', 'noindex') })
 
-const loginPage = (msg = '') => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Chords</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px system-ui,sans-serif;background:#18202b;color:#e8ebf0}
-form{display:grid;gap:10px;width:min(320px,88vw)}h1{margin:0 0 4px;font-size:1.3rem}
-input,button{font:inherit;padding:10px 12px;border-radius:6px;border:1px solid #2f3a49;background:#202a37;color:inherit}
-button{background:#f4c04e;color:#18202b;border:0;font-weight:600;cursor:pointer}p{margin:0;color:#f08a8a;min-height:1.2em}</style>
-<form method="post" action="/login"><h1>Chords</h1><input type="password" name="password" placeholder="Password" autofocus required><button>Sign in</button><p>${msg}</p></form>`
+const loginPage = (msg = '') => `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>ThunderChords</title>
+<link rel="icon" href="/icon.svg">
+<meta name="theme-color" content="#12171f">
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=Syne:600,700|DM+Sans:400,500,600|IBM+Plex+Mono:400,700" rel="stylesheet">
+<script src="/theme.js"></script>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="login">
+<button type="button" class="theme-btn theme-corner" data-theme-toggle>Dark</button>
+<form class="login-card" method="post" action="/login">
+  <h1 class="brand">ThunderChords</h1>
+  <p class="muted">Sign in to your chord library</p>
+  <input type="password" name="password" placeholder="Password" autofocus required>
+  <button class="primary">Sign in</button>
+  <p class="err">${msg}</p>
+</form>
+</body></html>`
 
 app.get('/login', c => c.html(loginPage()))
 app.post('/login', async c => {
@@ -130,7 +145,7 @@ app.post('/login', async c => {
 app.post('/logout', c => { deleteCookie(c, 'sid', { path: '/' }); return c.redirect('/login') })
 
 // Files a shared page needs. Code only, no data.
-const PUBLIC = new Set(['/login', '/style.css', '/chords.js', '/music.js', '/sheet.js', '/scroll.js', '/viewer.js', '/song.js', '/api.js',
+const PUBLIC = new Set(['/login', '/style.css', '/theme.js', '/chords.js', '/music.js', '/sheet.js', '/scroll.js', '/viewer.js', '/song.js', '/api.js',
   '/manifest.webmanifest', '/sw.js', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'])
 
 app.use('*', async (c, next) => {
@@ -433,4 +448,4 @@ const page = (route, file) => app.get(route, serveStatic({ path: `./public/${fil
 page('/', 'index.html'); page('/song', 'song.html'); page('/setlists', 'setlists.html'); page('/setlist', 'setlist.html'); page('/medley', 'medley.html')
 app.use('/*', serveStatic({ root: './public' }))
 
-serve({ fetch: app.fetch, port: PORT, hostname: HOST }, i => console.log(`Chords on http://${HOST}:${i.port}  (${songs.size} songs in ${SONGS_DIR}, data in ${DATA_DIR})`))
+serve({ fetch: app.fetch, port: PORT, hostname: HOST }, i => console.log(`ThunderChords on http://${HOST}:${i.port}  (${songs.size} songs in ${SONGS_DIR}, data in ${DATA_DIR})`))

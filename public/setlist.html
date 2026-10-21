@@ -1,7 +1,26 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/style.css"><title>Setlist</title></head>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Setlist · ThunderChords</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<meta name="theme-color" content="#12171f">
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=Syne:600,700|DM+Sans:400,500,600|IBM+Plex+Mono:400,700" rel="stylesheet">
+<script src="/theme.js"></script>
+<link rel="stylesheet" href="/style.css">
+</head>
 <body>
-<header class="bar"><a href="/setlists" class="btn">Setlists</a><input id="name" class="ttl" aria-label="Setlist name"><a id="play" class="btn primary">Play</a><button id="share" data-needs-net>Share</button></header>
+<header class="bar">
+  <a href="/setlists" class="btn">Setlists</a>
+  <input id="name" class="ttl" aria-label="Setlist name">
+  <a id="play" class="btn primary">Play</a>
+  <button id="share" data-needs-net>Share</button>
+  <button type="button" class="theme-btn" data-theme-toggle>Dark</button>
+</header>
 <main class="wrap">
   <p class="muted"><span id="status">Loading...</span> Drag the handle or use the arrows to reorder. T is transpose and C is capo for this setlist only.</p>
   <ul id="items" class="items"></ul>
@@ -11,4 +30,5 @@
   <ul id="results" class="list"></ul>
 </main>
 <script type="module" src="/setlist.js"></script>
-</body></html>
+</body>
+</html>

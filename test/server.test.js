@@ -24,7 +24,7 @@ before(async () => {
   fake = http.createServer((_, res) => res.end(ugPage(page)))
   await new Promise(r => fake.listen(0, '127.0.0.1', r))
   srv = spawn(process.execPath, ['server.js'], { cwd: root, env: { ...process.env, PORT, PASSWORD: 'pw', SONGS_DIR: SONGS, DATA_DIR: DATA } })
-  await new Promise((res, rej) => { srv.stdout.on('data', d => String(d).includes('Chords on') && res()); srv.on('exit', rej); setTimeout(() => rej(new Error('server did not start')), 8000) })
+  await new Promise((res, rej) => { srv.stdout.on('data', d => String(d).includes('ThunderChords on') && res()); srv.on('exit', rej); setTimeout(() => rej(new Error('server did not start')), 8000) })
   const r = await fetch(base + '/login', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'password=pw', redirect: 'manual' })
   cookie = r.headers.get('set-cookie').split(';')[0]
 })

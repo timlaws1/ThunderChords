@@ -1,4 +1,4 @@
-# Chords
+# ThunderChords
 
 A personal chord library. Paste a chord-sheet link, get a clean page you can transpose, autoscroll, put in setlists, mix into medleys and share.
 Songs are plain text files. No database. Two npm packages (Hono and its Node adapter).
