@@ -35,7 +35,12 @@ function render() {
   $('#preview').innerHTML = items.length ? `<div class="sheet">${renderSheet(composeMedley(items, songs))}</div>` : ''
   $('#play').hidden = $('#share').hidden = !id
   if (id) $('#play').href = `/song?medley=${encodeURIComponent(id)}`
+  if (!id && items.length) status('Not saved yet — name it and Save before Play.')
 }
+
+addEventListener('beforeunload', e => {
+  if (!id && items.length) { e.preventDefault(); e.returnValue = '' }
+})
 
 enableReorder($('#items'), (from, to) => { items = moveItem(items, from, to); render() })
 $('#items').addEventListener('click', e => {
@@ -92,9 +97,12 @@ $('#sq').oninput = () => {
 $('#results').onclick = async e => {
   const sid = e.target.dataset.add
   if (!sid) return
+  if (items.some(i => i.songId === sid)) return status('Already in list')
   songs[sid] ||= await api('/api/songs/' + encodeURIComponent(sid))
   items.push({ songId: sid, t: 0, c: 0, sections: null })
   render()
+  status(id ? `Added ${songs[sid].title}.` : 'Not saved yet — name it and Save before Play.')
+  $('#items').scrollIntoView({ block: 'nearest' })
 }
 
 $('#save').onclick = async () => {

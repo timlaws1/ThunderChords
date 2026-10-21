@@ -16,6 +16,7 @@ export function createScroller({ getSpeed, onState = () => {} }) {
   function play() { if (playing) return; playing = true; last = performance.now(); acc = 0; requestAnimationFrame(tick); wake(true); onState(true) }
   function stop() { if (!playing) return; playing = false; wake(false); onState(false) }
   addEventListener('wheel', stop, { passive: true })
+  addEventListener('touchstart', stop, { passive: true })
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop() })
   return { play, stop, toggle: () => (playing ? stop() : play()), get playing() { return playing } }
 }

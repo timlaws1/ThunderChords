@@ -32,12 +32,16 @@ function render() {
     const date = sort === 'opened' && s.lastOpened ? `<span class="a">Opened ${new Date(s.lastOpened).toLocaleDateString()}</span>` : ''
     const href = s.medley ? `/song?medley=${encodeURIComponent(s.id)}` : `/song?id=${encodeURIComponent(s.id)}`
     const box = s.medley ? '<span></span>' : `<input type="checkbox" class="pick" data-id="${esc(s.id)}" aria-label="Select ${esc(s.title)}"${picked.has(s.id) ? ' checked' : ''}>`
-    return `<li>${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''}</a></li>`
+    const acts = s.medley
+      ? `<span class="rowacts"><a class="btn" href="/medley?id=${encodeURIComponent(s.id)}" data-needs-net>Edit</a><button type="button" data-del-medley="${esc(s.id)}" data-needs-net>Delete</button></span>`
+      : ''
+    return `<li>${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''}</a>${acts}</li>`
   }).join('')
   $('#empty').hidden = rows.length > 0
   $('#selbar').hidden = picked.size === 0
   $('#selcount').textContent = `${picked.size} selected`
   $('#mk').disabled = picked.size < 2
+  applyNet()
 }
 
 async function load() {
@@ -55,6 +59,18 @@ $('#sort').onchange = () => { store.set('sort', $('#sort').value); render() }
 $('#kind').onchange = () => { store.set('kind', $('#kind').value); render() }
 $('#tags').onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; tag = tag === b.dataset.t ? null : b.dataset.t; render() }
 $('#list').onchange = e => { if (!e.target.classList.contains('pick')) return; e.target.checked ? picked.add(e.target.dataset.id) : picked.delete(e.target.dataset.id); render() }
+$('#list').onclick = async e => {
+  const btn = e.target.closest('[data-del-medley]')
+  if (!btn) return
+  const mid = btn.dataset.delMedley
+  const m = medleys.find(x => x.id === mid)
+  if (!confirm(`Delete medley "${m?.name || mid}"?`)) return
+  try {
+    await api('/api/medleys/' + encodeURIComponent(mid), { method: 'DELETE' })
+    medleys = medleys.filter(x => x.id !== mid)
+    render()
+  } catch (err) { alert(err.message) }
+}
 $('#selclear').onclick = () => { picked.clear(); render() }
 $('#mk').onclick = () => { location = '/medley?songs=' + [...picked].map(encodeURIComponent).join(',') }
 

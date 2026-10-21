@@ -3,6 +3,7 @@ import { enableReorder, moveItem } from './reorder.js'
 
 const id = new URLSearchParams(location.search).get('id')
 let setlist, items = [], songs = {}, timer
+const idxKey = 'setlist:' + id + ':i'
 
 const status = s => { $('#status').textContent = s }
 function saveSoon() {
@@ -14,10 +15,32 @@ function saveSoon() {
   }, 400)
 }
 
+function resumeIndex() {
+  let i = 0
+  try { i = +sessionStorage.getItem(idxKey) || 0 } catch {}
+  if (i < 0 || i >= items.length) i = 0
+  return i
+}
+
+function syncPlay() {
+  const play = $('#play')
+  if (items.length) {
+    play.href = `/song?setlist=${encodeURIComponent(id)}&i=${resumeIndex()}`
+    play.removeAttribute('aria-disabled')
+  } else {
+    play.href = '#'
+    play.setAttribute('aria-disabled', 'true')
+  }
+}
+
 const row = (it, i) => {
   const s = songs[it.songId]
+  const title = s?.title || 'Song removed'
+  const link = s
+    ? `<a href="/song?id=${encodeURIComponent(it.songId)}"><b>${esc(title)}</b></a>`
+    : `<b>${esc(title)}</b>`
   return `<li data-i="${i}"><span class="grip" title="Drag to reorder" aria-label="Drag to reorder">&equiv;</span>
-    <div class="meta"><b>${esc(s?.title || 'Song removed')}</b><span class="muted">${esc(s?.artist || '')}</span></div>
+    <div class="meta">${link}<span class="muted">${esc(s?.artist || '')}</span></div>
     <div class="grp"><span>T</span><button data-a="t-">-</button><b>${it.t > 0 ? '+' : ''}${it.t}</b><button data-a="t+">+</button></div>
     <div class="grp"><span>C</span><button data-a="c-">-</button><b>${it.c}</b><button data-a="c+">+</button></div>
     <button class="up" aria-label="Move up">Up</button><button class="down" aria-label="Move down">Down</button><button data-a="rm">Remove</button></li>`
@@ -25,7 +48,7 @@ const row = (it, i) => {
 function render() {
   $('#items').innerHTML = items.map(row).join('')
   $('#empty').hidden = items.length > 0
-  $('#play').href = items.length ? `/song?setlist=${encodeURIComponent(id)}` : '#'
+  syncPlay()
 }
 
 enableReorder($('#items'), (from, to) => { items = moveItem(items, from, to); render(); saveSoon() })
@@ -38,7 +61,7 @@ $('#items').addEventListener('click', e => {
   else it.c = Math.min(11, Math.max(0, it.c + (a[1] === '+' ? 1 : -1)))
   render(); saveSoon()
 })
-$('#name').onchange = saveSoon
+$('#name').oninput = saveSoon
 $('#share').onclick = () => import('./share-ui.js').then(x => x.openShareDialog('setlist', id, $('#name').value))
 
 let st
@@ -56,8 +79,12 @@ $('#sq').oninput = () => {
 $('#results').onclick = e => {
   const sid = e.target.dataset.add
   if (!sid) return
+  if (items.some(i => i.songId === sid)) return status('Already in list')
   items.push({ songId: sid, t: 0, c: 0 })
-  render(); saveSoon()
+  status(`Added ${songs[sid]?.title || 'song'}.`)
+  render()
+  saveSoon()
+  $('#items').scrollIntoView({ block: 'nearest' })
 }
 
 try {

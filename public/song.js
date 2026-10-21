@@ -33,14 +33,14 @@ function serverPrefs(key, { dropTC = null } = {}) {
     async saveGlobalSize(size) { try { await api('/api/prefs/_global', { method: 'PUT', body: { size } }) } catch (e) { if (e.offline) queuePrefs('_global', { size }) } },
   }
 }
-function localPrefs(key) {
+function localPrefs(key, { force = null } = {}) {
   const lk = 'share:' + key
   return {
-    async load() { try { return { prefs: JSON.parse(store.get(lk)) || {}, global: {}, force: null } } catch { return { prefs: {}, global: {}, force: null } } },
+    async load() { try { return { prefs: JSON.parse(store.get(lk)) || {}, global: {}, force } } catch { return { prefs: {}, global: {}, force } } },
     save(P) { store.set(lk, JSON.stringify(P)) },
   }
 }
-const prefsFor = (key, opts) => (token ? localPrefs(token + ':' + key) : serverPrefs(key, opts))
+const prefsFor = (key, opts) => (token ? localPrefs(token + ':' + key, opts) : serverPrefs(key, opts))
 
 const songDoc = s => ({ title: s.title, artist: s.artist, key: s.key, capo: s.capo, body: s.body, transposable: true })
 const removedDoc = { title: 'Song removed', body: '(this song was deleted)', transposable: false, text: '(this song was deleted)' }
@@ -93,11 +93,18 @@ async function playSetlist() {
   if (!items.length) return fail('This setlist is empty.')
   const it = items[index]
   const s = bundle.songs[it.songId]
-  $('#plpos').textContent = `${index + 1} of ${items.length}`
+  const title = s?.title || 'Song removed'
+  $('#plpos').textContent = `${index + 1} of ${items.length} · ${title}`
   $('#plprev').disabled = index === 0
   $('#plnext').disabled = index === items.length - 1
-  if (!token) history.replaceState(null, '', `/song?setlist=${encodeURIComponent(bundle.setlist.id)}&i=${index}`)
-  if (s) await viewer.load(songDoc(s), token ? localPrefs(token + ':' + s.id) : serverPrefs('song:' + s.id, { dropTC: { t: it.t, c: it.c } }))
+  if (!token) {
+    history.replaceState(null, '', `/song?setlist=${encodeURIComponent(bundle.setlist.id)}&i=${index}`)
+    try { sessionStorage.setItem('setlist:' + bundle.setlist.id + ':i', String(index)) } catch {}
+  }
+  const force = { t: it.t, c: it.c }
+  if (s) await viewer.load(songDoc(s), token
+    ? localPrefs(token + ':' + s.id, { force })
+    : serverPrefs('song:' + s.id, { dropTC: force }))
   else await viewer.load(removedDoc, localPrefs('removed'))
   if (!token && s) api(`/api/songs/${s.id}/opened`, { method: 'POST' }).catch(() => {})
 }
@@ -109,6 +116,16 @@ addEventListener('keydown', e => {
   if (e.key === ',') step(-1)
   else if (e.key === '.') step(1)
 })
+
+// Horizontal swipe changes setlist song when not in two-column mode
+let swipeX = null
+$('#sheet').addEventListener('touchstart', e => { swipeX = e.touches[0].clientX }, { passive: true })
+$('#sheet').addEventListener('touchend', e => {
+  if (swipeX === null || $('#plnav').hidden || document.body.classList.contains('cols')) { swipeX = null; return }
+  const dx = e.changedTouches[0].clientX - swipeX
+  swipeX = null
+  if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1)
+}, { passive: true })
 
 // ---- song management (not shown on shared pages) ----
 function manageSong() {
