@@ -1,0 +1,13 @@
+[Unit]
+Description=Chords (personal chord library)
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/chords
+ExecStart=/usr/bin/node server.js
+EnvironmentFile=/etc/chords.env
+Restart=always
+User=www-data
+
+[Install]
+WantedBy=multi-user.target

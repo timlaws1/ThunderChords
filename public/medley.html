@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/style.css"><title>Medley</title></head>
+<body>
+<header class="bar"><a href="/" class="btn">Library</a><input id="name" class="ttl" placeholder="Medley name" aria-label="Medley name"><button id="save" class="primary" data-needs-net>Save</button><a id="play" class="btn" hidden>Play</a><button id="share" data-needs-net hidden>Share</button></header>
+<main class="wrap">
+  <div class="filters">
+    <label>Target key <input id="tkey" list="keys" placeholder="e.g. G or Am" size="8"></label>
+    <button id="match">Match keys</button>
+    <button id="order">Suggest order</button>
+    <span id="status" class="muted"></span>
+  </div>
+  <datalist id="keys"></datalist>
+  <p class="muted">Tick sections to use only those parts of a song. With none ticked the whole song is used. Keys marked "guessed" come from the first chord, so check them.</p>
+  <ul id="items" class="items"></ul>
+  <p id="empty" class="muted" hidden>No songs yet. Search below to add some.</p>
+  <h2>Add songs</h2>
+  <input id="sq" type="search" placeholder="Search your library" autocomplete="off">
+  <ul id="results" class="list"></ul>
+  <h2>Preview</h2>
+  <div id="preview" class="preview"></div>
+</main>
+<script type="module" src="/medley.js"></script>
+</body></html>

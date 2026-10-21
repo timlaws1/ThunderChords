@@ -1,0 +1,19 @@
+{
+  "name": "chords",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal self-hosted chord sheet library",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "hono": "^4.13.13"
+  }
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Chords</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#18202b">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="bar">
+  <h1>Chords</h1>
+  <input id="q" type="search" placeholder="Search title, artist or lyrics" autocomplete="off">
+  <a href="/setlists" class="btn">Setlists</a>
+  <button id="add" class="primary" data-needs-net>Add song</button>
+</header>
+<main class="wrap">
+  <div class="filters">
+    <label>Sort
+      <select id="sort">
+        <option value="artist">Artist</option>
+        <option value="title">Title</option>
+        <option value="added">Newest first</option>
+        <option value="opened">Recently opened</option>
+        <option value="key">Key</option>
+      </select>
+    </label>
+    <label>Show
+      <select id="kind"><option value="all">Songs and medleys</option><option value="song">Songs</option><option value="medley">Medleys</option></select>
+    </label>
+    <div id="tags" class="tags"></div>
+  </div>
+  <div id="selbar" class="selbar" hidden><span id="selcount"></span><button id="mk" class="primary">Make medley</button><button id="selclear">Clear</button></div>
+  <ul id="list" class="list"></ul>
+  <p id="empty" class="muted" hidden>Nothing here yet. Choose Add song and paste a link.</p>
+  <p class="foot"><button id="offline-save">Save for offline</button> <span id="offline-msg" class="muted"></span></p>
+</main>
+
+<dialog id="dlg">
+  <section>
+    <h2>Import from a link</h2>
+    <div class="row"><input id="url" type="url" placeholder="https://tabs.ultimate-guitar.com/..."><button id="doImport" class="primary">Import</button></div>
+  </section>
+  <section>
+    <h2>Or paste the chords</h2>
+    <div class="row"><input id="ptitle" placeholder="Title"><input id="partist" placeholder="Artist"></div>
+    <textarea id="text" placeholder="Paste the chord sheet here"></textarea>
+    <div><button id="doPaste">Save pasted song</button></div>
+  </section>
+  <p id="err" class="err"></p>
+  <button id="close">Close</button>
+</dialog>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

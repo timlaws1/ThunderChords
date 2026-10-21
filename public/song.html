@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Chords</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="bar noprint">
+  <a href="/" class="btn" id="home">Library</a>
+  <div class="ttl"><h1 id="title"></h1><div id="artist" class="muted"></div></div>
+  <button id="print">PDF</button>
+  <button id="addset" data-mgmt data-needs-net hidden>Add to setlist</button>
+  <button id="share" data-mgmt data-needs-net hidden>Share</button>
+  <button id="reimport" data-mgmt data-needs-net hidden>Re-import</button>
+  <button id="edit" data-mgmt data-needs-net hidden>Edit</button>
+</header>
+<div class="sticky noprint">
+  <div id="plnav" class="plnav" hidden><button id="plprev">Previous</button><b id="plpos"></b><button id="plnext">Next</button></div>
+  <nav class="tools" id="tools"></nav>
+  <div id="fpanel" class="panel" hidden></div>
+</div>
+<main class="wrap">
+  <div id="meta" class="muted"></div>
+  <div id="sheet"></div>
+  <form id="editor" hidden>
+    <div class="row"><input id="f-title" placeholder="Title" required><input id="f-artist" placeholder="Artist"></div>
+    <div class="row"><input id="f-key" placeholder="Key (e.g. Am)"><input id="f-capo" type="number" min="0" max="12" placeholder="Capo"><input id="f-tags" placeholder="Tags, comma separated"></div>
+    <textarea id="f-body" spellcheck="false"></textarea>
+    <div class="row"><button class="primary">Save changes</button><button type="button" id="cancel">Cancel</button><button type="button" id="del" class="danger">Delete song</button></div>
+  </form>
+</main>
+
+<dialog id="rdlg" class="wide">
+  <h2>Re-import from the source</h2>
+  <p class="muted" id="rmsg">Fetching...</p>
+  <div class="cmp" id="rcmp" hidden><div><h3>Current</h3><pre id="rold"></pre></div><div><h3>New</h3><pre id="rnew"></pre></div></div>
+  <p class="muted" id="rnote" hidden>Only the sheet text is replaced. Title, tags, key and capo stay. The old version is kept in the .history folder.</p>
+  <div class="row"><button id="rok" class="primary" hidden>Replace with new version</button><button id="rclose">Close</button></div>
+</dialog>
+
+<dialog id="ldlg">
+  <h2>Add to setlist</h2>
+  <section><select id="lsel"></select><input id="lnew" placeholder="Or a new setlist name"></section>
+  <p class="err" id="lerr"></p>
+  <div class="row"><button id="lok" class="primary">Add</button><button id="lclose">Close</button></div>
+</dialog>
+<script type="module" src="/song.js"></script>
+</body>
+</html>

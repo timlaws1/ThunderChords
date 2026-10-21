@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/style.css"><title>Setlist</title></head>
+<body>
+<header class="bar"><a href="/setlists" class="btn">Setlists</a><input id="name" class="ttl" aria-label="Setlist name"><a id="play" class="btn primary">Play</a><button id="share" data-needs-net>Share</button></header>
+<main class="wrap">
+  <p class="muted"><span id="status">Loading...</span> Drag the handle or use the arrows to reorder. T is transpose and C is capo for this setlist only.</p>
+  <ul id="items" class="items"></ul>
+  <p id="empty" class="muted" hidden>No songs yet. Search below to add some.</p>
+  <h2>Add songs</h2>
+  <input id="sq" type="search" placeholder="Search your library" autocomplete="off">
+  <ul id="results" class="list"></ul>
+</main>
+<script type="module" src="/setlist.js"></script>
+</body></html>
