@@ -38,8 +38,10 @@
 <dialog id="rdlg" class="wide">
   <h2>Re-import from the source</h2>
   <p class="muted" id="rmsg">Fetching...</p>
-  <div class="cmp" id="rcmp" hidden><div><h3>Current</h3><pre id="rold"></pre></div><div><h3>New</h3><pre id="rnew"></pre></div></div>
-  <p class="muted" id="rnote" hidden>Only the sheet text is replaced. Title, tags, key and capo stay. The old version is kept in the .history folder.</p>
+  <p id="rmeta" class="muted" hidden></p>
+  <label id="rmetaupd" class="field" hidden><input id="rupdmeta" type="checkbox"> Update key and capo from source</label>
+  <div class="cmp" id="rcmp" hidden><div><h3>Current</h3><div id="rold" class="sheet"></div></div><div><h3>New</h3><div id="rnew" class="sheet"></div></div></div>
+  <p class="muted" id="rnote" hidden>Only the sheet text is replaced unless you tick the box above. Title and tags stay. The old version is kept in the .history folder.</p>
   <div class="row"><button id="rok" class="primary" hidden>Replace with new version</button><button id="rclose">Close</button></div>
 </dialog>
 

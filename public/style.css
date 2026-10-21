@@ -73,11 +73,26 @@ details summary{cursor:pointer;color:var(--chord)}
 dialog{width:min(560px,92vw);padding:20px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
 dialog.wide{width:min(980px,96vw)}
 dialog::backdrop{background:#0008}
-dialog h2{margin:0 0 8px}
+dialog h2{margin:0}
 dialog section{display:grid;gap:8px;margin-bottom:18px}
 dialog textarea{min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.dlghead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.iconbtn{border:none;background:transparent;padding:4px 8px;color:var(--mute);font-size:1.1rem;line-height:1}
+.addform{display:grid;gap:12px}
+.modes{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:fit-content}
+.mode{border:none;border-radius:0;background:transparent;padding:6px 14px}
+.mode.on{background:var(--chord);color:var(--bg);font-weight:600}
+.modepane{display:grid;gap:8px}
+#mode-paste textarea{min-height:240px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.dlgactions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.field{display:flex;align-items:center;gap:6px;flex:1;min-width:0;color:var(--mute);font-size:.9rem}
+.field input{flex:1;min-width:0;color:var(--ink)}
+.warn{color:#b45309;margin:0;font-size:.95rem}
 .cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
-.cmp pre{margin:0;max-height:50vh;overflow:auto;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:8px}
+.cmp .sheet,.cmp pre{margin:0;max-height:50vh;overflow:auto;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:8px}
+.cmp .sheet .l.chg{background:#fde68a44}
+.cmp .sheet .l.add{background:#bbf7d044}
+.cmp .sheet .l.del{background:#fecaca55;text-decoration:line-through;opacity:.75}
 @media (max-width:700px){.cmp{grid-template-columns:1fr}}
 .shares{list-style:none;padding:0;margin:0 0 8px;display:grid;gap:8px}
 .shares li{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.shares input{flex:1;min-width:200px}

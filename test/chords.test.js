@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import { transposeChord, transposeLine, transposeText, isChordLine, usesFlats } from '../public/chords.js'
-import { normalize, importFromUrl } from '../importer.js'
+import { normalize, parseSheet, importFromUrl } from '../importer.js'
 
 test('transposeChord', () => {
   assert.equal(transposeChord('Am7', 2), 'Bm7')
@@ -41,6 +41,25 @@ test('usesFlats', () => {
 
 test('normalize strips markers and keeps alignment', () => {
   assert.equal(normalize('[tab][ch]Am[/ch]   [ch]F[/ch]\r\nHello[/tab]\n\n\n\nBye  '), 'Am   F\nHello\n\nBye\n')
+})
+
+test('normalize lifts inline UG and ChordPro chords', () => {
+  assert.equal(
+    normalize("[ch]Am[/ch]Well it's [ch]F[/ch]ok\n"),
+    "Am        F\nWell it's ok\n",
+  )
+  assert.equal(
+    normalize("[Am]Well it's [F]ok\n"),
+    "Am        F\nWell it's ok\n",
+  )
+  assert.equal(normalize('[Verse 1]\n[Am]hello\n'), '[Verse 1]\nAm\nhello\n')
+})
+
+test('parseSheet pulls Key and Capo headers', () => {
+  const s = parseSheet('Key: Am\nCapo: 2\nAm   F\nhello\n')
+  assert.equal(s.key, 'Am')
+  assert.equal(s.capo, 2)
+  assert.equal(s.body, 'Am   F\nhello\n')
 })
 
 test('importFromUrl reads the Ultimate Guitar page data', async () => {

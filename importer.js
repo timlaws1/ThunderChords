@@ -10,16 +10,84 @@ const ent = s => s
 
 // Lines that sheet sites mix into the text. Exact-line matches only, so lyrics are safe.
 const JUNK = /^\s*(advertisement|advertising|sponsored|print|transpose|autoscroll|chords:|tabs?:)\s*$/i
+const TAB = /^\s*[a-gA-G][#b]?\s*[|:]\s*[-\dhpbrx/\\~^()|*.\s<>]{3,}$/
+const SECTION = /^\s*\[[^\]]+\]\s*$/
+const CHORD_TOK = /^([A-G][#b]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9+°ø\-#b()])*)(?:\/([A-G][#b]?))?$/
+const INLINE = /\[ch\]([^[\]]+)\[\/ch\]|\[([^\]]+)\]/gi
+
+const isChordTok = s => CHORD_TOK.test(String(s).trim())
+
+// Lift UG [ch]…[/ch] and ChordPro [Am] markers into a chord line above the lyrics.
+function liftLine(line) {
+  if (TAB.test(line)) return [line]
+  if (SECTION.test(line)) {
+    const inner = line.trim().slice(1, -1).trim()
+    return isChordTok(inner) ? [inner] : [line]
+  }
+
+  const matches = []
+  INLINE.lastIndex = 0
+  for (let m; (m = INLINE.exec(line));) {
+    const tok = (m[1] ?? m[2]).trim()
+    if (!isChordTok(tok)) continue
+    matches.push({ start: m.index, end: m.index + m[0].length, chord: tok })
+  }
+  if (!matches.length) return [line]
+
+  let lyric = '', last = 0
+  const places = []
+  for (const mk of matches) {
+    lyric += line.slice(last, mk.start)
+    places.push({ chord: mk.chord, col: lyric.length })
+    last = mk.end
+  }
+  lyric += line.slice(last)
+
+  if (!lyric.trim()) {
+    let only = '', at = 0
+    for (const mk of matches) {
+      only += line.slice(at, mk.start) + mk.chord
+      at = mk.end
+    }
+    return [(only + line.slice(at)).replace(/[ \t]+$/g, '')]
+  }
+
+  let chords = ''
+  for (const { chord, col } of places) {
+    const at = chords.length > col ? chords.length + 1 : col
+    chords += ' '.repeat(at - chords.length) + chord
+  }
+  return [chords, lyric.replace(/[ \t]+$/g, '')]
+}
+
+function extractHeaders(lines) {
+  let key = '', capo = 0, i = 0
+  while (i < lines.length) {
+    const l = lines[i]
+    if (!l.trim()) { i++; continue }
+    const km = l.match(/^\s*key\s*:\s*(.+?)\s*$/i)
+    if (km) { key = km[1].trim(); i++; continue }
+    const cm = l.match(/^\s*capo\s*:?\s*(\d+)\s*$/i)
+    if (cm) { capo = +cm[1]; i++; continue }
+    break
+  }
+  return { key, capo, lines: lines.slice(i) }
+}
 
 // Turn any chord sheet text into our plain format: chords on the line above the lyrics.
-export function normalize(text) {
-  return String(text)
+export function parseSheet(text) {
+  const cleaned = String(text)
     .replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ')
-    .replace(/\[\/?ch\]/g, '').replace(/\[\/?tab\]/g, '')
+    .replace(/\[\/?tab\]/gi, '')
     .replace(/\u266f/g, '#').replace(/\u266d/g, 'b')
-    .split('\n').filter(l => !JUNK.test(l)).join('\n')
-    .replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n')
-    .replace(/^\n+|\n+$/g, '') + '\n'
+  const lifted = cleaned.split('\n').filter(l => !JUNK.test(l)).flatMap(liftLine)
+  const { key, capo, lines } = extractHeaders(lifted)
+  const body = lines.join('\n').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '') + '\n'
+  return { body, key, capo }
+}
+
+export function normalize(text) {
+  return parseSheet(text).body
 }
 
 function ultimateGuitar(html) {
@@ -31,12 +99,13 @@ function ultimateGuitar(html) {
   const content = data?.tab_view?.wiki_tab?.content
   if (!content) return null
   const t = data.tab || {}, meta = data.tab_view.meta || {}
+  const parsed = parseSheet(content)
   return {
     title: t.song_name,
     artist: t.artist_name,
-    key: meta.tonality || t.tonality_name || '',
-    capo: meta.capo ?? t.capo ?? 0,
-    body: normalize(content),
+    key: meta.tonality || t.tonality_name || parsed.key || '',
+    capo: meta.capo ?? t.capo ?? parsed.capo ?? 0,
+    body: parsed.body,
   }
 }
 
@@ -46,7 +115,14 @@ function generic(html) {
   if (!best || best.length < 80) return null
   const text = ent(best.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''))
   const raw = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]*)"/i) || html.match(/<title>([^<]*)<\/title>/i) || [])[1] || ''
-  return { title: ent(raw).replace(/\s*(chords|tab|lyrics)\b.*$/i, '').trim(), artist: '', key: '', capo: 0, body: normalize(text) }
+  const parsed = parseSheet(text)
+  return {
+    title: ent(raw).replace(/\s*(chords|tab|lyrics)\b.*$/i, '').trim(),
+    artist: '',
+    key: parsed.key || '',
+    capo: parsed.capo || 0,
+    body: parsed.body,
+  }
 }
 
 export async function importFromUrl(url) {

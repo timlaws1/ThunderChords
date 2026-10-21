@@ -41,18 +41,47 @@
 </main>
 
 <dialog id="dlg">
-  <section>
-    <h2>Import from a link</h2>
-    <div class="row"><input id="url" type="url" placeholder="https://tabs.ultimate-guitar.com/..."><button id="doImport" class="primary">Import</button></div>
-  </section>
-  <section>
-    <h2>Or paste the chords</h2>
-    <div class="row"><input id="ptitle" placeholder="Title"><input id="partist" placeholder="Artist"></div>
-    <textarea id="text" placeholder="Paste the chord sheet here"></textarea>
-    <div><button id="doPaste">Save pasted song</button></div>
-  </section>
-  <p id="err" class="err"></p>
-  <button id="close">Close</button>
+  <form id="addform" class="addform">
+    <header class="dlghead">
+      <h2>Add song</h2>
+      <button type="button" id="close" class="iconbtn" aria-label="Close">✕</button>
+    </header>
+
+    <div id="step-input">
+      <div class="modes" role="tablist">
+        <button type="button" class="mode on" data-mode="link" role="tab" aria-selected="true">Link</button>
+        <button type="button" class="mode" data-mode="paste" role="tab" aria-selected="false">Paste</button>
+      </div>
+      <div id="mode-link" class="modepane">
+        <input id="url" type="url" placeholder="https://tabs.ultimate-guitar.com/..." autocomplete="off">
+      </div>
+      <div id="mode-paste" class="modepane" hidden>
+        <div class="row"><input id="ptitle" placeholder="Title" autocomplete="off"><input id="partist" placeholder="Artist" autocomplete="off"></div>
+        <textarea id="text" placeholder="Paste the chord sheet here" spellcheck="false"></textarea>
+      </div>
+      <div class="dlgactions">
+        <button type="submit" id="doPreview" class="primary">Import</button>
+      </div>
+    </div>
+
+    <div id="step-preview" hidden>
+      <p id="dupnote" class="warn" hidden></p>
+      <div class="row"><input id="ftitle" placeholder="Title" required autocomplete="off"><input id="fartist" placeholder="Artist" autocomplete="off"></div>
+      <div class="row">
+        <label class="field">Key <input id="fkey" placeholder="e.g. Am" autocomplete="off"><span id="fkeyhint" class="muted" hidden>guessed</span></label>
+        <label class="field">Capo <input id="fcapo" type="number" min="0" max="12" placeholder="0"></label>
+      </div>
+      <label id="fsourcewrap" class="field" hidden>Source <input id="fsource" type="url" autocomplete="off"></label>
+      <div id="sheetprev" class="preview"></div>
+      <div class="dlgactions">
+        <button type="button" id="doBack">Back</button>
+        <a id="doOpen" class="btn primary" hidden>Open existing</a>
+        <button type="submit" id="doSave" class="primary">Save song</button>
+      </div>
+    </div>
+
+    <p id="err" class="err" role="alert"></p>
+  </form>
 </dialog>
 <script type="module" src="/app.js"></script>
 </body>

@@ -89,6 +89,47 @@ test('re-import previews, replaces, and keeps 5 old versions', async () => {
   assert.equal((await call('/api/songs/coldplay-yellow/reimport', { method: 'POST' })).status, 422) // pasted, no source
 })
 
+test('preview does not save; confirm-save and updateMeta replace', async () => {
+  const before = (await call('/api/songs')).json.length
+  const prev = await call('/api/songs/preview', {
+    method: 'POST',
+    body: { text: 'Key: G\nCapo 3\n[G]Hello [C]there', title: 'Preview Me', artist: 'Tester' },
+  })
+  assert.equal(prev.status, 200)
+  assert.equal(prev.json.title, 'Preview Me')
+  assert.equal(prev.json.key, 'G')
+  assert.equal(prev.json.capo, 3)
+  assert.match(prev.json.body, /^G\s+C\nHello there\n$/)
+  assert.equal((await call('/api/songs')).json.length, before)
+
+  const saved = await call('/api/songs/import', {
+    method: 'POST',
+    body: {
+      title: prev.json.title, artist: prev.json.artist, key: 'D', capo: 1,
+      body: prev.json.body, source: '', text: 'ignored once body is set',
+    },
+  })
+  assert.equal(saved.status, 200)
+  assert.equal(saved.json.id, 'tester-preview-me')
+  const song = (await call('/api/songs/tester-preview-me')).json
+  assert.equal(song.key, 'D')
+  assert.equal(song.capo, 1)
+  assert.match(song.body, /Hello there/)
+
+  const kept = await call('/api/songs/tester-preview-me/replace', {
+    method: 'POST', body: { body: 'G  C\nnew words', key: 'Em', capo: 5 },
+  })
+  assert.equal(kept.json.key, 'D')
+  assert.equal(kept.json.capo, 1)
+  assert.match(kept.json.body, /new words/)
+
+  const updated = await call('/api/songs/tester-preview-me/replace', {
+    method: 'POST', body: { body: 'Am  F\nagain', key: 'Em', capo: 5, updateMeta: true },
+  })
+  assert.equal(updated.json.key, 'Em')
+  assert.equal(updated.json.capo, 5)
+})
+
 test('setlists and medleys', async () => {
   const sl = (await call('/api/setlists', { method: 'POST', body: { name: 'Friday gig', items: [{ songId: 'coldplay-yellow', t: 40, c: -3 }, { songId: '../bad' }] } })).json
   assert.equal(sl.id, 'friday-gig')

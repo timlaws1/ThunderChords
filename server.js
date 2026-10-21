@@ -8,7 +8,8 @@ import { watch } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { collection, jsonStore, slug } from './lib/data.js'
-import { importFromUrl, normalize } from './importer.js'
+import { importFromUrl, parseSheet } from './importer.js'
+import { guessKey } from './public/music.js'
 
 process.chdir(path.dirname(fileURLToPath(import.meta.url)))
 
@@ -251,18 +252,71 @@ app.post('/api/songs/:id/opened', c => {
   return c.json({ ok: true })
 })
 
-app.post('/api/songs/import', async c => {
+function withGuessedKey(d) {
+  if (one(d.key)) return { ...d, keyGuessed: false }
+  const g = guessKey(d.body, '')
+  return g ? { ...d, key: g.key, keyGuessed: true } : { ...d, keyGuessed: false }
+}
+
+// Preview an import without writing a file.
+app.post('/api/songs/preview', async c => {
   const b = await c.req.json().catch(() => ({}))
   try {
     let d
     if (b.url) {
       const url = String(b.url).trim()
       const dup = [...songs.values()].find(s => s.source === url)
+      d = withGuessedKey(await importFromUrl(url))
+      d.source = url
+      return c.json({
+        title: d.title || '', artist: d.artist || '', key: d.key || '', capo: +d.capo || 0,
+        body: d.body, source: url, keyGuessed: !!d.keyGuessed, duplicateId: dup?.id || null,
+      })
+    }
+    if (b.text) {
+      const parsed = parseSheet(b.text)
+      d = withGuessedKey({
+        title: b.title, artist: b.artist, key: parsed.key, capo: parsed.capo, body: parsed.body,
+      })
+      return c.json({
+        title: d.title || '', artist: d.artist || '', key: d.key || '', capo: +d.capo || 0,
+        body: d.body, source: '', keyGuessed: !!d.keyGuessed, duplicateId: null,
+      })
+    }
+    return c.json({ error: 'Give a link or paste some text.' }, 400)
+  } catch (e) {
+    return c.json({ error: e.message }, 422)
+  }
+})
+
+app.post('/api/songs/import', async c => {
+  const b = await c.req.json().catch(() => ({}))
+  try {
+    let d
+    if (typeof b.body === 'string' && !b.url) {
+      // Confirm-save from a preview: no second fetch.
+      const source = one(b.source)
+      if (source) {
+        const dup = [...songs.values()].find(s => s.source === source)
+        if (dup) return c.json({ id: dup.id, duplicate: true })
+      }
+      const body = b.body.replace(/\r\n/g, '\n')
+      d = {
+        title: b.title, artist: b.artist, key: b.key, capo: b.capo,
+        source, body: body.endsWith('\n') ? body : body + '\n',
+      }
+    } else if (b.url) {
+      const url = String(b.url).trim()
+      const dup = [...songs.values()].find(s => s.source === url)
       if (dup) return c.json({ id: dup.id, duplicate: true })
-      d = await importFromUrl(url)
+      d = withGuessedKey(await importFromUrl(url))
       d.source = url
     } else if (b.text) {
-      d = { title: b.title, artist: b.artist, key: '', capo: 0, source: '', body: normalize(b.text) }
+      const parsed = parseSheet(b.text)
+      d = withGuessedKey({
+        title: b.title, artist: b.artist, key: parsed.key, capo: parsed.capo,
+        source: '', body: parsed.body,
+      })
     } else return c.json({ error: 'Give a link or paste some text.' }, 400)
     if (!one(d.title)) throw new Error('No title found. Add a title and try again.')
     const s = {
@@ -283,7 +337,10 @@ app.post('/api/songs/:id/reimport', async c => {
   if (!s.source) return c.json({ error: 'This song has no source link.' }, 422)
   try {
     const d = await importFromUrl(s.source)
-    return c.json({ body: d.body, key: d.key || '', capo: +d.capo || 0, current: s.body })
+    return c.json({
+      body: d.body, key: d.key || '', capo: +d.capo || 0,
+      current: s.body, currentKey: s.key || '', currentCapo: s.capo || 0,
+    })
   } catch (e) {
     return c.json({ error: e.message }, 422)
   }
@@ -297,7 +354,11 @@ app.post('/api/songs/:id/replace', async c => {
   const body = String(b.body || '').replace(/\r\n/g, '\n').replace(/\s+$/, '')
   if (!body.trim()) return c.json({ error: 'The new version is empty.' }, 400)
   await snapshot(old)
-  const s = { ...old, body: body + '\n', key: old.key || one(b.key), capo: old.capo || +b.capo || 0 }
+  const s = {
+    ...old,
+    body: body + '\n',
+    ...(b.updateMeta ? { key: one(b.key), capo: +b.capo || 0 } : {}),
+  }
   await save(s)
   return c.json(s)
 })

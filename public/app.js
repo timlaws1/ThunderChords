@@ -1,4 +1,5 @@
 import { api, esc, store, applyNet, $ } from './api.js'
+import { renderSheet } from './sheet.js'
 
 let songs = [], medleys = [], tag = null
 const picked = new Set()
@@ -58,24 +59,127 @@ $('#selclear').onclick = () => { picked.clear(); render() }
 $('#mk').onclick = () => { location = '/medley?songs=' + [...picked].map(encodeURIComponent).join(',') }
 
 // ---- add song ----
-$('#add').onclick = () => { $('#err').textContent = ''; $('#dlg').showModal(); $('#url').focus() }
-$('#close').onclick = () => $('#dlg').close()
-async function submit(body, btn) {
+let mode = 'link', preview = null, busy = false
+const dlg = $('#dlg')
+
+function setMode(m) {
+  mode = m
+  for (const b of dlg.querySelectorAll('.mode')) {
+    const on = b.dataset.mode === m
+    b.classList.toggle('on', on)
+    b.setAttribute('aria-selected', on ? 'true' : 'false')
+  }
+  $('#mode-link').hidden = m !== 'link'
+  $('#mode-paste').hidden = m !== 'paste'
+}
+
+function showStep(step) {
+  $('#step-input').hidden = step !== 'input'
+  $('#step-preview').hidden = step !== 'preview'
   $('#err').textContent = ''
-  btn.disabled = true
-  const label = btn.textContent
-  btn.textContent = 'Working...'
-  try {
-    const r = await api('/api/songs/import', { method: 'POST', body })
-    location = '/song?id=' + encodeURIComponent(r.id)
-  } catch (e) {
-    $('#err').textContent = e.message
-    btn.disabled = false
-    btn.textContent = label
+}
+
+function resetDialog() {
+  preview = null
+  showStep('input')
+  setMode('link')
+  $('#dupnote').hidden = true
+  $('#doOpen').hidden = true
+  $('#doSave').hidden = false
+  $('#doSave').disabled = false
+  $('#fkeyhint').hidden = true
+  $('#sheetprev').innerHTML = ''
+  $('#err').textContent = ''
+}
+
+function syncDupActions() {
+  const dup = !!preview?.duplicateId
+  const source = $('#fsource').value.trim()
+  const same = dup && source === (preview.source || '')
+  $('#dupnote').hidden = !dup
+  $('#dupnote').textContent = dup
+    ? (same ? 'This link is already in your library.' : 'Source changed — saving will create a new song.')
+    : ''
+  $('#doOpen').hidden = !dup
+  if (dup) $('#doOpen').href = '/song?id=' + encodeURIComponent(preview.duplicateId)
+  $('#doSave').hidden = same
+  $('#doSave').disabled = same
+  $('#doSave').classList.toggle('primary', !dup || !same)
+  $('#doOpen').classList.toggle('primary', same)
+}
+
+function showPreview(d) {
+  preview = d
+  $('#ftitle').value = d.title || ''
+  $('#fartist').value = d.artist || ''
+  $('#fkey').value = d.key || ''
+  $('#fcapo').value = d.capo || ''
+  $('#fkeyhint').hidden = !d.keyGuessed
+  $('#fsource').value = d.source || ''
+  $('#fsourcewrap').hidden = !d.source && !d.duplicateId
+  $('#sheetprev').innerHTML = `<div class="sheet">${renderSheet(d.body)}</div>`
+  syncDupActions()
+  showStep('preview')
+  ;(d.duplicateId ? $('#doOpen') : $('#ftitle')).focus()
+}
+$('#fsource').oninput = syncDupActions
+
+async function runBusy(btn, label, fn) {
+  if (busy) return
+  busy = true
+  $('#err').textContent = ''
+  const buttons = [$('#doPreview'), $('#doSave'), $('#doBack')]
+  for (const b of buttons) if (b) b.disabled = true
+  const prev = btn.textContent
+  btn.textContent = label
+  try { await fn() }
+  catch (e) { $('#err').textContent = e.message }
+  finally {
+    btn.textContent = prev
+    for (const b of buttons) if (b) b.disabled = false
+    if (preview) syncDupActions()
+    busy = false
   }
 }
-$('#doImport').onclick = e => submit({ url: $('#url').value }, e.target)
-$('#doPaste').onclick = e => submit({ text: $('#text').value, title: $('#ptitle').value, artist: $('#partist').value }, e.target)
+
+$('#add').onclick = () => { resetDialog(); dlg.showModal(); $('#url').focus() }
+$('#close').onclick = () => dlg.close()
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close() })
+dlg.querySelector('.modes').onclick = e => {
+  const b = e.target.closest('[data-mode]')
+  if (b) setMode(b.dataset.mode)
+}
+$('#doBack').onclick = () => { showStep('input'); (mode === 'link' ? $('#url') : $('#text')).focus() }
+
+$('#addform').onsubmit = async e => {
+  e.preventDefault()
+  if ($('#step-preview').hidden) {
+    await runBusy($('#doPreview'), 'Working...', async () => {
+      const body = mode === 'link'
+        ? { url: $('#url').value.trim() }
+        : { text: $('#text').value, title: $('#ptitle').value, artist: $('#partist').value }
+      if (mode === 'link' && !body.url) throw new Error('Paste a link first.')
+      if (mode === 'paste' && !body.text.trim()) throw new Error('Paste some chords first.')
+      showPreview(await api('/api/songs/preview', { method: 'POST', body }))
+    })
+  } else {
+    await runBusy($('#doSave'), 'Saving...', async () => {
+      const source = $('#fsource').value.trim()
+      if (preview?.duplicateId && source === (preview.source || '')) {
+        throw new Error('This link is already saved. Open the existing song, or change the source.')
+      }
+      const r = await api('/api/songs/import', {
+        method: 'POST',
+        body: {
+          title: $('#ftitle').value, artist: $('#fartist').value,
+          key: $('#fkey').value, capo: $('#fcapo').value,
+          body: preview.body, source, text: mode === 'paste' ? $('#text').value : undefined,
+        },
+      })
+      location = '/song?id=' + encodeURIComponent(r.id)
+    })
+  }
+}
 
 // ---- save everything for offline use: the service worker caches what these requests fetch ----
 $('#offline-save').dataset.needsNet = ''

@@ -1,6 +1,7 @@
 import { api, esc, store, queuePrefs, applyNet, $ } from './api.js'
 import { composeMedley } from './music.js'
 import { mountViewer } from './viewer.js'
+import { renderSheet, diffMarks } from './sheet.js'
 
 const qs = new URLSearchParams(location.search)
 const token = location.pathname.startsWith('/s/') ? location.pathname.split('/')[2] : null
@@ -145,16 +146,33 @@ function manageSong() {
   $('#rclose').onclick = () => rd.close()
   $('#reimport').onclick = async () => {
     $('#rmsg').textContent = 'Fetching the source page...'
-    for (const x of ['#rcmp', '#rok', '#rnote']) $(x).hidden = true
+    for (const x of ['#rcmp', '#rok', '#rnote', '#rmeta', '#rmetaupd']) $(x).hidden = true
+    $('#rupdmeta').checked = false
     rd.showModal()
     try {
       const r = await api(`/api/songs/${encodeURIComponent(song.id)}/reimport`, { method: 'POST' })
-      $('#rold').textContent = r.current; $('#rnew').textContent = r.body
-      $('#rmsg').textContent = r.body.trim() === r.current.trim() ? 'The source matches what you have. Nothing to change.' : 'Compare the two versions.'
+      const same = r.body.trim() === r.current.trim()
+      const { aMarks, bMarks } = diffMarks(r.current, r.body)
+      $('#rold').innerHTML = renderSheet(r.current, aMarks)
+      $('#rnew').innerHTML = renderSheet(r.body, bMarks)
+      $('#rmsg').textContent = same ? 'The source matches what you have. Nothing to change.' : 'Compare the two versions. Highlighted lines differ.'
+      const keyDiff = (r.key || '') !== (r.currentKey || '')
+      const capoDiff = (+r.capo || 0) !== (+r.currentCapo || 0)
+      if (keyDiff || capoDiff) {
+        const parts = []
+        if (keyDiff) parts.push(`key ${r.currentKey || '(none)'} → ${r.key || '(none)'}`)
+        if (capoDiff) parts.push(`capo ${r.currentCapo || 0} → ${r.capo || 0}`)
+        $('#rmeta').textContent = 'Source has a different ' + parts.join(' and ') + '.'
+        $('#rmeta').hidden = false
+        $('#rmetaupd').hidden = false
+      }
       for (const x of ['#rcmp', '#rnote']) $(x).hidden = false
-      $('#rok').hidden = r.body.trim() === r.current.trim()
+      $('#rok').hidden = same
       $('#rok').onclick = async () => {
-        song = await api(`/api/songs/${encodeURIComponent(song.id)}/replace`, { method: 'POST', body: { body: r.body, key: r.key, capo: r.capo } })
+        song = await api(`/api/songs/${encodeURIComponent(song.id)}/replace`, {
+          method: 'POST',
+          body: { body: r.body, key: r.key, capo: r.capo, updateMeta: $('#rupdmeta').checked },
+        })
         rd.close()
         await viewer.load(songDoc(song), prefsFor('song:' + song.id))
       }
