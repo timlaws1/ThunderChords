@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="tc-card max-w-xl grid gap-6">
         <div>
-            <h2 class="font-brand text-xl font-bold m-0">{{ Auth::user()->email }}</h2>
+            <h2 class="text-xl font-bold m-0">{{ Auth::user()->email }}</h2>
             <p class="muted mt-1 mb-0">Manage your account</p>
         </div>
 

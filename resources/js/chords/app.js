@@ -1,12 +1,24 @@
 import { api, esc, store, applyNet, $ } from './api.js'
+import { setNavOpen } from './shell.js'
 import { renderSheet } from './sheet.js'
 
 const UNTAGGED = '__untagged__'
+const COVER_TONES = ['sunset', 'city', 'forest', 'red', 'gold', 'blue', 'purple']
+const COVER_MARKS = ['☼', '▥', '♧', '♪', '♫', '↟', '☾', '✦', '☁']
 let allSongs = [], songs = [], medleys = [], setlists = [], tag = null, view = 'all'
 const picked = new Set()
 const importTags = new Set()
 $('#sort').value = store.get('sort') || 'artist'
 $('#kind').value = store.get('kind') || 'all'
+
+const params = new URLSearchParams(location.search)
+if (params.has('q') && $('#q')) $('#q').value = params.get('q') || ''
+
+function coverTone(id) {
+  let h = 0
+  for (let i = 0; i < String(id).length; i++) h = (h * 31 + String(id).charCodeAt(i)) >>> 0
+  return { tone: COVER_TONES[h % COVER_TONES.length], mark: COVER_MARKS[h % COVER_MARKS.length] }
+}
 
 const byTitle = (a, b) => a.title.localeCompare(b.title)
 const sorters = {
@@ -41,41 +53,34 @@ function activeSort() {
   return $('#sort').value
 }
 
-function setNavOpen(open) {
-  const dash = document.querySelector('.dash')
-  const toggle = $('#nav-toggle')
-  const scrim = $('#dash-scrim')
-  if (!dash) return
-  dash.classList.toggle('open', open)
-  if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
-  if (scrim) scrim.hidden = !open
-}
-
 function renderCats() {
+  const el = $('#tags')
+  if (!el) return
   const { counts, untagged } = tagCounts()
   const names = [...counts.keys()].sort((a, b) => a.localeCompare(b))
   if (tag && tag !== UNTAGGED && !counts.has(tag)) tag = null
   if (tag === UNTAGGED && !untagged) tag = null
 
   const rows = [
-    `<button type="button" class="cat${tag == null ? ' on' : ''}" data-t="">All <span class="n">${allSongs.length}</span></button>`,
-    ...names.map(t => `<button type="button" class="cat${t === tag ? ' on' : ''}" data-t="${esc(t)}">${esc(t)} <span class="n">${counts.get(t)}</span></button>`),
+    `<button type="button" class="cat${tag == null ? ' on' : ''}" data-t=""><span class="ico" aria-hidden="true">♫</span><span>All</span><span class="n">${allSongs.length}</span></button>`,
+    ...names.map(t => `<button type="button" class="cat${t === tag ? ' on' : ''}" data-t="${esc(t)}"><span class="ico" aria-hidden="true">♧</span><span>${esc(t)}</span><span class="n">${counts.get(t)}</span></button>`),
   ]
   if (untagged) {
-    rows.push(`<button type="button" class="cat${tag === UNTAGGED ? ' on' : ''}" data-t="${UNTAGGED}">Untagged <span class="n">${untagged}</span></button>`)
+    rows.push(`<button type="button" class="cat${tag === UNTAGGED ? ' on' : ''}" data-t="${UNTAGGED}"><span class="ico" aria-hidden="true">○</span><span>Untagged</span><span class="n">${untagged}</span></button>`)
   }
-  $('#tags').innerHTML = rows.join('')
+  el.innerHTML = rows.join('')
 }
 
 function renderSetlistsNav() {
   const el = $('#setlists-nav')
   if (!el) return
+  el.dataset.owned = '1'
   if (!setlists.length) {
-    el.innerHTML = `<a class="set-link" href="/setlists"><span class="muted" style="color:inherit;opacity:.75">No setlists yet</span></a>`
+    el.innerHTML = `<a class="set-link" href="/setlists"><span class="ico" aria-hidden="true">♧</span><span>No setlists yet</span></a>`
     return
   }
   el.innerHTML = setlists.slice(0, 8).map(s =>
-    `<a class="set-link" href="/setlist?id=${encodeURIComponent(s.id)}">${esc(s.name)} <span class="n">${s.count ?? 0}</span></a>`
+    `<a class="set-link" href="/setlist?id=${encodeURIComponent(s.id)}"><span class="ico" aria-hidden="true">♧</span><span>${esc(s.name)}</span><span class="count">${s.count ?? 0}</span></a>`
   ).join('')
 }
 
@@ -83,13 +88,13 @@ function renderStats() {
   const artists = new Set(allSongs.map(s => s.artist).filter(Boolean)).size
   const cats = tagCounts().counts.size
   const items = [
-    ['Total songs', allSongs.length, ''],
-    ['Artists', artists, 'teal'],
-    ['Categories', cats, 'purple'],
-    ['Medleys', medleys.length, 'pink'],
+    ['Total Songs', allSongs.length, 'blue', '♫'],
+    ['Artists', artists, 'purple', '♙'],
+    ['Categories', cats, 'teal', '▱'],
+    ['Medleys', medleys.length, 'pink', '♡'],
   ]
-  $('#stats').innerHTML = items.map(([label, n, tone]) =>
-    `<div class="stat"><span class="stat-ico ${tone}" aria-hidden="true">${n}</span><div><b>${n}</b><span>${label}</span></div></div>`
+  $('#stats').innerHTML = items.map(([label, n, tone, icon]) =>
+    `<div class="stat"><span class="stat-ico ${tone}" aria-hidden="true">${icon}</span><div><div class="stat-label">${label}</div><div class="stat-number">${n}</div></div></div>`
   ).join('')
 }
 
@@ -104,14 +109,10 @@ function renderRecent() {
   $('#recent-empty').hidden = recent.length > 0
 }
 
-function songMeta(s) {
-  const bits = []
-  if (s.key) bits.push(`<span class="pill">${esc(s.key)}</span>`)
-  if (s.capo) bits.push(`<span class="pill">Capo ${esc(s.capo)}</span>`)
-  for (const t of (s.tags || []).slice(0, 3)) bits.push(`<span class="pill">${esc(t)}</span>`)
-  const chords = (s.chords || []).slice(0, 5)
-  if (chords.length) bits.push(`<span class="chords">${chords.map(esc).join(' ')}</span>`)
-  return bits.length ? `<span class="meta-row">${bits.join('')}</span>` : ''
+function keyLabel(s) {
+  if (s.capo) return `Capo ${esc(s.capo)}`
+  if (s.key) return esc(s.key)
+  return ''
 }
 
 function render() {
@@ -140,13 +141,17 @@ function render() {
   ].sort(sorters[sort])
 
   $('#list').innerHTML = rows.map(s => {
-    const date = sort === 'opened' && s.lastOpened ? `<span class="a">Opened ${new Date(s.lastOpened).toLocaleDateString()}</span>` : ''
     const href = s.medley ? `/song?medley=${encodeURIComponent(s.id)}` : `/song?id=${encodeURIComponent(s.id)}`
-    const box = s.medley ? '<span></span>' : `<input type="checkbox" class="pick" data-id="${esc(s.id)}" aria-label="Select ${esc(s.title)}"${picked.has(s.id) ? ' checked' : ''}>`
+    const box = s.medley
+      ? '<span class="pick-spacer" aria-hidden="true"></span>'
+      : `<input type="checkbox" class="pick" data-id="${esc(s.id)}" aria-label="Select ${esc(s.title)}"${picked.has(s.id) ? ' checked' : ''}>`
+    const { tone, mark } = coverTone(s.id || s.title)
+    const key = keyLabel(s)
+    const chords = (s.chords || []).slice(0, 4)
     const acts = s.medley
       ? `<span class="rowacts"><a class="btn" href="/medley?id=${encodeURIComponent(s.id)}" data-needs-net>Edit</a><button type="button" data-del-medley="${esc(s.id)}" data-needs-net>Delete</button></span>`
-      : `<span class="rowacts"><a class="btn" href="${href}">Open</a></span>`
-    return `<li class="group">${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${songMeta(s)}</a>${acts}</li>`
+      : `<a class="play" href="${href}" aria-label="Open ${esc(s.title)}">▶</a>`
+    return `<li class="group">${box}<a class="song-row" href="${href}"><div class="song-info"><span class="cover ${tone}" aria-hidden="true">${mark}</span><div class="song-text"><span class="song-title t">${esc(s.title)}</span><div class="artist a">${esc(s.artist)}</div></div></div>${key ? `<span class="key key-pill">${key}</span>` : '<span></span>'}${chords.length ? `<div class="chords chords-row">${chords.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : '<span></span>'}</a>${acts}</li>`
   }).join('')
   $('#empty').hidden = rows.length > 0
   $('#selbar').hidden = picked.size === 0
@@ -192,9 +197,6 @@ $('#tags').onclick = e => {
   setNavOpen(false)
   render()
 }
-$('#nav-toggle')?.addEventListener('click', () => setNavOpen(true))
-$('#nav-close')?.addEventListener('click', () => setNavOpen(false))
-$('#dash-scrim')?.addEventListener('click', () => setNavOpen(false))
 $('#list').onchange = e => { if (!e.target.classList.contains('pick')) return; e.target.checked ? picked.add(e.target.dataset.id) : picked.delete(e.target.dataset.id); render() }
 $('#list').onclick = async e => {
   const btn = e.target.closest('[data-del-medley]')

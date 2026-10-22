@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chords | My Songs</title>
+<style>
+  :root {
+    --navy: #172235;
+    --navy-2: #202e43;
+    --ink: #17243b;
+    --muted: #71809a;
+    --line: #e6ebf2;
+    --canvas: #f5f7fb;
+    --blue: #2878f5;
+    --blue-soft: #eaf2ff;
+    --teal: #0da9a0;
+    --pink: #ec4f83;
+    --purple: #8062ed;
+    --white: #fff;
+    --radius: 13px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  .app { min-height: 100vh; display: grid; grid-template-columns: 230px minmax(0, 1fr); }
+  .sidebar {
+    background: var(--navy);
+    color: #d3dceb;
+    min-height: 100vh;
+    padding: 0 15px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .brand {
+    height: 75px; display: flex; align-items: center; gap: 11px;
+    padding: 0 10px; color: #fff; font-size: 23px; font-weight: 750;
+    letter-spacing: -.7px; border-bottom: 1px solid #2c394d; margin-bottom: 17px;
+  }
+  .brand-mark {
+    width: 35px; height: 35px; border-radius: 50%; background: #fff; color: var(--navy);
+    display: grid; place-items: center; font-size: 20px; font-weight: 900;
+  }
+  .nav { display: grid; gap: 5px; }
+  .nav a, .playlist a {
+    text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;
+    min-height: 40px; border-radius: 8px; padding: 0 11px;
+  }
+  .nav a:hover, .playlist a:hover { background: #26364e; color: #fff; }
+  .nav a.active { background: var(--blue); color: #fff; box-shadow: 0 5px 14px #0d56bd44; }
+  .ico { width: 20px; text-align: center; font-size: 18px; line-height: 1; flex: 0 0 20px; }
+  .nav-label { font-size: 13.5px; font-weight: 550; }
+  .side-section { border-top: 1px solid #2c394d; margin-top: 18px; padding-top: 16px; }
+  .side-heading { display: flex; justify-content: space-between; align-items: center; padding: 0 9px 8px; color: #93a2b9; font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+  .playlist { display: grid; gap: 3px; }
+  .playlist a { min-height: 34px; font-size: 12.5px; }
+  .playlist .count { margin-left: auto; color: #a7b5c9; font-size: 11px; }
+  .side-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid #2c394d; }
+  .main { min-width: 0; }
+  .topbar {
+    height: 75px; background: rgba(255,255,255,.92); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 22px; padding: 0 28px; position: sticky; top: 0; z-index: 5;
+  }
+  .search { position: relative; max-width: 570px; width: 100%; }
+  .search span { position: absolute; left: 14px; top: 10px; color: #8190a8; font-size: 17px; }
+  .search input {
+    width: 100%; border: 1px solid var(--line); background: #f8faff; border-radius: 9px;
+    padding: 11px 14px 11px 41px; outline: none; color: var(--ink);
+  }
+  .search input:focus { border-color: #8db8ff; box-shadow: 0 0 0 3px #2878f51c; }
+  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 18px; color: #53627a; }
+  .icon-button { border: 0; background: transparent; color: inherit; font-size: 19px; padding: 5px; position: relative; }
+  .notification-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); position: absolute; right: 3px; top: 2px; }
+  .profile { display: flex; align-items: center; gap: 9px; font-weight: 650; color: var(--ink); white-space: nowrap; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #d9e8ff; color: #2454a0; font-weight: 800; }
+  .content { display: grid; grid-template-columns: minmax(0, 1fr) 295px; gap: 18px; padding: 25px 22px 30px; max-width: 1800px; margin: auto; }
+  .primary { min-width: 0; }
+  .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 19px; }
+  h1 { margin: 0; font-size: 29px; line-height: 1.2; letter-spacing: -.9px; }
+  .subheading { margin: 5px 0 0; color: var(--muted); font-size: 13.5px; }
+  .primary-button {
+    border: 0; background: var(--blue); color: white; font-weight: 700; padding: 11px 16px;
+    border-radius: 8px; box-shadow: 0 4px 10px #2878f52b; white-space: nowrap;
+  }
+  .primary-button:hover { background: #1768e6; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+  .stat { display: flex; align-items: center; gap: 11px; background: white; border: 1px solid var(--line); border-radius: 11px; padding: 15px 13px; min-width: 0; }
+  .stat-icon { flex: 0 0 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; font-size: 19px; }
+  .stat-icon.blue { background: #eaf3ff; color: var(--blue); }
+  .stat-icon.purple { background: #f0edff; color: var(--purple); }
+  .stat-icon.teal { background: #e5f8f4; color: var(--teal); }
+  .stat-icon.pink { background: #fff0f5; color: var(--pink); }
+  .stat-label { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .stat-number { font-size: 20px; line-height: 1.3; font-weight: 780; margin-top: 2px; }
+  .library { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .library-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; align-items: center; gap: 5px; overflow-x: auto; }
+  .tab { border: 0; background: transparent; color: #697994; padding: 10px 11px; border-radius: 7px; white-space: nowrap; font-size: 12px; }
+  .tab.active { color: var(--blue); background: #f0f6ff; font-weight: 750; }
+  .sort { border: 1px solid var(--line); color: #63738d; background: #fff; padding: 9px 10px; border-radius: 8px; white-space: nowrap; font-size: 11px; }
+  .song-row { display: grid; grid-template-columns: minmax(160px, 1.45fr) 64px minmax(90px, .9fr) 34px 38px 24px; gap: 10px; align-items: center; min-height: 77px; padding: 11px 16px; border-bottom: 1px solid #edf0f5; }
+  .song-row:last-child { border-bottom: 0; }
+  .song-row:hover { background: #fbfcff; }
+  .song-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .cover { width: 47px; height: 47px; flex: 0 0 47px; border-radius: 8px; display: grid; place-items: center; color: white; font-size: 21px; box-shadow: inset 0 0 0 1px #0000000d; }
+  .cover.sunset { background: linear-gradient(150deg,#f8ba75,#7b526c 55%,#273d57); }
+  .cover.city { background: linear-gradient(135deg,#d3dce4,#687787 55%,#222c3b); }
+  .cover.forest { background: linear-gradient(135deg,#b2c9a3,#42664f 60%,#263d37); }
+  .cover.red { background: linear-gradient(135deg,#ff766f,#c9283e 60%,#571d35); }
+  .cover.gold { background: linear-gradient(135deg,#f6d06e,#bd8237 55%,#533a32); }
+  .cover.blue { background: linear-gradient(135deg,#a4ddf8,#3679b4 55%,#15355b); }
+  .cover.purple { background: linear-gradient(135deg,#e1a4ec,#8856a5 60%,#3c315b); }
+  .song-text { min-width: 0; }
+  .song-title { display: block; color: #1b2a43; font-weight: 750; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .artist { color: #7b8aa3; font-size: 11.5px; margin-top: 3px; }
+  .key { justify-self: start; color: #62728c; background: #f2f5fa; border-radius: 6px; padding: 4px 8px; font-size: 10.5px; font-weight: 700; }
+  .chords { display: flex; gap: 10px; color: #647590; font-size: 10.5px; white-space: nowrap; }
+  .row-action { border: 0; background: transparent; color: #8a98ad; font-size: 18px; padding: 5px; }
+  .row-action.fav { color: var(--pink); }
+  .play { border: 1px solid #e4eaf2; background: #fff; color: #23334c; border-radius: 50%; width: 34px; height: 34px; display: grid; place-items: center; font-size: 12px; }
+  .play:hover { border-color: var(--blue); color: var(--blue); }
+  .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 12px 17px; border-top: 1px solid var(--line); }
+  .page { width: 29px; height: 29px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: #64738b; font-size: 11px; }
+  .page.active { background: var(--blue); color: #fff; }
+  .right { display: grid; align-content: start; gap: 15px; min-width: 0; }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 13px; font-size: 14px; font-weight: 780; }
+  .text-link { color: var(--blue); text-decoration: none; font-size: 11px; font-weight: 650; white-space: nowrap; }
+  .quick-list { display: grid; gap: 7px; }
+  .quick-action { display: flex; align-items: center; gap: 12px; padding: 8px 0; text-decoration: none; color: inherit; }
+  .quick-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 10px; font-size: 19px; flex: 0 0 42px; }
+  .quick-icon.green { background: #e8f8f1; color: #14a76c; }
+  .quick-icon.purple { background: #f0edff; color: #7658ee; }
+  .quick-icon.blue { background: #eaf3ff; color: var(--blue); }
+  .quick-title { font-weight: 700; font-size: 12px; }
+  .quick-desc { color: var(--muted); font-size: 10.5px; margin-top: 3px; }
+  .chevron { margin-left: auto; color: #9aa7b9; font-size: 20px; }
+  .chord-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; }
+  .chord { text-align: center; color: #34445e; font-size: 11px; font-weight: 750; }
+  .chord svg { width: 100%; max-width: 47px; height: 67px; display: block; margin: 3px auto 0; }
+  .activity { display: grid; gap: 14px; }
+  .activity-item { display: flex; gap: 10px; align-items: flex-start; }
+  .activity-icon { width: 34px; height: 34px; display: grid; place-items: center; background: #edf5ff; color: var(--blue); border-radius: 9px; flex: 0 0 34px; }
+  .activity-copy { color: #687894; font-size: 10.5px; line-height: 1.5; }
+  .activity-copy strong { color: #263650; font-weight: 750; }
+  .activity-time { color: #9aa6b8; font-size: 10px; margin-top: 2px; }
+  .tip { background: #eaf6ff; border: 1px solid #dcefff; border-radius: var(--radius); padding: 15px; display: flex; gap: 10px; color: #536d8c; font-size: 11px; }
+  .tip-icon { font-size: 20px; }
+  .tip strong { display: block; color: #253b56; margin-bottom: 5px; font-size: 12px; }
+  .tip p { margin: 0; line-height: 1.55; }
+  .mobile-menu { display: none; }
+  @media (max-width: 1250px) {
+    .content { grid-template-columns: minmax(0,1fr); }
+    .right { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .tip { min-height: 90px; }
+  }
+  @media (max-width: 850px) {
+    .app { grid-template-columns: 72px minmax(0,1fr); }
+    .sidebar { padding: 0 10px 15px; }
+    .brand { justify-content: center; padding: 0; font-size: 0; }
+    .brand-mark { flex: 0 0 35px; }
+    .nav a, .playlist a { justify-content: center; padding: 0; }
+    .nav-label, .side-heading span:first-child, .playlist .count, .playlist a span:not(.ico), .side-bottom .nav-label { display: none; }
+    .side-heading { justify-content: center; padding-left: 0; padding-right: 0; }
+    .side-heading span:last-child { display: none; }
+    .side-section { margin-top: 12px; }
+    .topbar { padding: 0 16px; gap: 12px; }
+    .content { padding: 20px 14px; }
+    .stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .song-row { grid-template-columns: minmax(130px,1.4fr) 45px minmax(70px,.8fr) 30px 34px; gap: 7px; padding: 10px; }
+    .song-row .more { display: none; }
+    .chords { gap: 6px; }
+  }
+  @media (max-width: 560px) {
+    .app { display: block; }
+    .sidebar { display: none; }
+    .topbar { height: 62px; }
+    .profile .name, .profile .down, .top-actions .icon-button:first-child { display: none; }
+    .content { padding: 18px 10px; }
+    .page-heading { align-items: flex-start; }
+    h1 { font-size: 25px; }
+    .subheading { max-width: 220px; font-size: 12px; }
+    .primary-button { padding: 10px 11px; font-size: 12px; }
+    .stats { gap: 8px; }
+    .stat { padding: 10px; gap: 8px; }
+    .stat-icon { width: 34px; height: 34px; flex-basis: 34px; }
+    .stat-label { font-size: 10px; }
+    .stat-number { font-size: 18px; }
+    .library-tools { align-items: flex-start; flex-direction: column; }
+    .tabs { max-width: 100%; width: 100%; }
+    .sort { align-self: flex-end; }
+    .song-row { grid-template-columns: minmax(0,1fr) 38px 30px; gap: 6px; min-height: 69px; }
+    .song-row .key, .song-row .chords, .song-row .more { display: none; }
+    .cover { width: 42px; height: 42px; flex-basis: 42px; }
+    .right { grid-template-columns: minmax(0,1fr); }
+    .search input { padding-top: 9px; padding-bottom: 9px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">♩</span> Chords</div>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="#"><span class="ico">⌂</span><span class="nav-label">Home</span></a>
+      <a class="active" href="#"><span class="ico">♫</span><span class="nav-label">Songs</span></a>
+      <a href="#"><span class="ico">▦</span><span class="nav-label">Chords</span></a>
+      <a href="#"><span class="ico">♙</span><span class="nav-label">Artists</span></a>
+      <a href="#"><span class="ico">▱</span><span class="nav-label">Collections</span></a>
+      <a href="#"><span class="ico">♡</span><span class="nav-label">Favourites</span></a>
+      <a href="#"><span class="ico">◷</span><span class="nav-label">Recently Viewed</span></a>
+    </nav>
+    <section class="side-section">
+      <div class="side-heading"><span>PLAYLISTS</span><span>＋</span></div>
+      <nav class="playlist" aria-label="Playlists">
+        <a href="#"><span class="ico">♧</span><span>Acoustic</span><span class="count">12</span></a>
+        <a href="#"><span class="ico">♧</span><span>Rock</span><span class="count">23</span></a>
+        <a href="#"><span class="ico">♧</span><span>Indie</span><span class="count">17</span></a>
+        <a href="#"><span class="ico">♧</span><span>Classics</span><span class="count">8</span></a>
+        <a href="#"><span class="ico">♧</span><span>Chill</span><span class="count">14</span></a>
+      </nav>
+    </section>
+    <div class="side-bottom">
+      <nav class="nav"><a href="#"><span class="ico">⚙</span><span class="nav-label">Settings</span></a></nav>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search songs, artists, or chords..." aria-label="Search songs, artists, or chords"></label>
+      <div class="top-actions">
+        <button class="icon-button" aria-label="Toggle theme" title="Toggle theme">☾</button>
+        <button class="icon-button" aria-label="Notifications" title="Notifications">♧<i class="notification-dot"></i></button>
+        <div class="profile"><span class="avatar">T</span><span class="name">Tim</span><span class="down">⌄</span></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="primary">
+        <div class="page-heading">
+          <div><h1>My Songs</h1><p class="subheading">Your personal library of songs and chords.</p></div>
+          <button class="primary-button" id="addSong">＋ Add Song</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span class="stat-icon blue">♫</span><div><div class="stat-label">Total Songs</div><div class="stat-number">124</div></div></div>
+          <div class="stat"><span class="stat-icon purple">♙</span><div><div class="stat-label">Artists</div><div class="stat-number">48</div></div></div>
+          <div class="stat"><span class="stat-icon teal">▱</span><div><div class="stat-label">Collections</div><div class="stat-number">5</div></div></div>
+          <div class="stat"><span class="stat-icon pink">♡</span><div><div class="stat-label">Favourites</div><div class="stat-number">32</div></div></div>
+        </div>
+
+        <section class="library" aria-label="Song library">
+          <div class="library-tools">
+            <div class="tabs" role="tablist" aria-label="Song filters">
+              <button class="tab active" data-filter="all">All</button>
+              <button class="tab" data-filter="favourites">Favourites</button>
+              <button class="tab" data-filter="recent">Recently Added</button>
+              <button class="tab" data-filter="played">Recently Played</button>
+            </div>
+            <select class="sort" id="sort" aria-label="Sort songs">
+              <option value="recent">Sort by: Recently Added</option>
+              <option value="title">Sort by: Title</option>
+              <option value="artist">Sort by: Artist</option>
+            </select>
+          </div>
+          <div id="songList">
+            <article class="song-row" data-title="Wonderwall" data-artist="Oasis" data-fav="true" data-recent="1" data-played="1">
+              <div class="song-info"><span class="cover sunset">☼</span><div class="song-text"><span class="song-title">Wonderwall</span><div class="artist">Oasis</div></div></div><span class="key">Capo 2</span><div class="chords"><span>G</span><span>D</span><span>Em</span><span>C</span></div><button class="row-action fav" aria-label="Remove Wonderwall from favourites">♥</button><button class="play" aria-label="Open Wonderwall">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Take Me Out" data-artist="Franz Ferdinand" data-fav="false" data-recent="2" data-played="2">
+              <div class="song-info"><span class="cover city">▥</span><div class="song-text"><span class="song-title">Take Me Out</span><div class="artist">Franz Ferdinand</div></div></div><span class="key">D</span><div class="chords"><span>D</span><span>A</span><span>Bm</span><span>G</span></div><button class="row-action" aria-label="Add Take Me Out to favourites">♡</button><button class="play" aria-label="Open Take Me Out">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Riptide" data-artist="Vance Joy" data-fav="false" data-recent="3" data-played="3">
+              <div class="song-info"><span class="cover forest">♧</span><div class="song-text"><span class="song-title">Riptide</span><div class="artist">Vance Joy</div></div></div><span class="key">G</span><div class="chords"><span>G</span><span>D</span><span>Em</span><span>C</span></div><button class="row-action" aria-label="Add Riptide to favourites">♡</button><button class="play" aria-label="Open Riptide">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Brown Eyed Girl" data-artist="Van Morrison" data-fav="true" data-recent="4" data-played="4">
+              <div class="song-info"><span class="cover red">♪</span><div class="song-text"><span class="song-title">Brown Eyed Girl</span><div class="artist">Van Morrison</div></div></div><span class="key">G</span><div class="chords"><span>G</span><span>C</span><span>D</span><span>Em</span></div><button class="row-action fav" aria-label="Remove Brown Eyed Girl from favourites">♥</button><button class="play" aria-label="Open Brown Eyed Girl">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="I'm Yours" data-artist="Jason Mraz" data-fav="false" data-recent="5" data-played="5">
+              <div class="song-info"><span class="cover gold">♫</span><div class="song-text"><span class="song-title">I'm Yours</span><div class="artist">Jason Mraz</div></div></div><span class="key">C</span><div class="chords"><span>C</span><span>G</span><span>Am</span><span>F</span></div><button class="row-action" aria-label="Add I'm Yours to favourites">♡</button><button class="play" aria-label="Open I'm Yours">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Fast Car" data-artist="Tracy Chapman" data-fav="false" data-recent="6" data-played="6">
+              <div class="song-info"><span class="cover blue">↟</span><div class="song-text"><span class="song-title">Fast Car</span><div class="artist">Tracy Chapman</div></div></div><span class="key">C</span><div class="chords"><span>C</span><span>G</span><span>Am</span><span>F</span></div><button class="row-action" aria-label="Add Fast Car to favourites">♡</button><button class="play" aria-label="Open Fast Car">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Don't Look Back in Anger" data-artist="Oasis" data-fav="false" data-recent="7" data-played="7">
+              <div class="song-info"><span class="cover city">☁</span><div class="song-text"><span class="song-title">Don't Look Back in Anger</span><div class="artist">Oasis</div></div></div><span class="key">A</span><div class="chords"><span>A</span><span>E</span><span>F#m</span><span>D</span></div><button class="row-action" aria-label="Add Don't Look Back in Anger to favourites">♡</button><button class="play" aria-label="Open Don't Look Back in Anger">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="The Scientist" data-artist="Coldplay" data-fav="true" data-recent="8" data-played="8">
+              <div class="song-info"><span class="cover purple">☾</span><div class="song-text"><span class="song-title">The Scientist</span><div class="artist">Coldplay</div></div></div><span class="key">C</span><div class="chords"><span>C</span><span>G</span><span>Am</span><span>Em</span></div><button class="row-action fav" aria-label="Remove The Scientist from favourites">♥</button><button class="play" aria-label="Open The Scientist">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Better Together" data-artist="Jack Johnson" data-fav="false" data-recent="9" data-played="9">
+              <div class="song-info"><span class="cover sunset">☼</span><div class="song-text"><span class="song-title">Better Together</span><div class="artist">Jack Johnson</div></div></div><span class="key">G</span><div class="chords"><span>G</span><span>D</span><span>Em</span><span>C</span></div><button class="row-action" aria-label="Add Better Together to favourites">♡</button><button class="play" aria-label="Open Better Together">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+            <article class="song-row" data-title="Landslide" data-artist="Fleetwood Mac" data-fav="false" data-recent="10" data-played="10">
+              <div class="song-info"><span class="cover purple">✦</span><div class="song-text"><span class="song-title">Landslide</span><div class="artist">Fleetwood Mac</div></div></div><span class="key">C</span><div class="chords"><span>C</span><span>G</span><span>Am</span><span>F</span></div><button class="row-action" aria-label="Add Landslide to favourites">♡</button><button class="play" aria-label="Open Landslide">▶</button><button class="row-action more" aria-label="More options">···</button>
+            </article>
+          </div>
+          <div class="pagination"><button class="page active">1</button><button class="page">2</button><button class="page">3</button><button class="page">4</button><button class="page">5</button><button class="page">›</button></div>
+        </section>
+      </section>
+
+      <aside class="right">
+        <section class="panel">
+          <h2 class="panel-heading">Quick Actions</h2>
+          <div class="quick-list">
+            <a href="#" class="quick-action" data-demo="Add Song"><span class="quick-icon green">⊕</span><span><span class="quick-title">Add Song</span><span class="quick-desc" style="display:block">Start a new song entry</span></span><span class="chevron">›</span></a>
+            <a href="#" class="quick-action" data-demo="Add Chord"><span class="quick-icon purple">▦</span><span><span class="quick-title">Add Chord</span><span class="quick-desc" style="display:block">Create a chord diagram</span></span><span class="chevron">›</span></a>
+            <a href="#" class="quick-action" data-demo="Browse Chords"><span class="quick-icon blue">♬</span><span><span class="quick-title">Browse Chords</span><span class="quick-desc" style="display:block">View all chords</span></span><span class="chevron">›</span></a>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-heading">Popular Chords <a class="text-link" href="#">View all</a></h2>
+          <div class="chord-grid">
+            <div class="chord">G <svg viewBox="0 0 48 68" aria-label="G chord diagram"><g stroke="#7e8da4" stroke-width="1"><path d="M7 15V61M16 15V61M25 15V61M34 15V61M43 15V61M4 19H46M4 28H46M4 37H46M4 46H46M4 55H46"/></g><g fill="#243650"><circle cx="7" cy="15" r="3"/><circle cx="25" cy="28" r="3"/><circle cx="43" cy="15" r="3"/></g><g fill="#fff" stroke="#243650" stroke-width="1"><circle cx="16" cy="15" r="2.5"/><circle cx="34" cy="15" r="2.5"/></g></svg></div>
+            <div class="chord">C <svg viewBox="0 0 48 68" aria-label="C chord diagram"><g stroke="#7e8da4" stroke-width="1"><path d="M7 15V61M16 15V61M25 15V61M34 15V61M43 15V61M4 19H46M4 28H46M4 37H46M4 46H46M4 55H46"/></g><g fill="#243650"><circle cx="25" cy="46" r="3"/><circle cx="43" cy="28" r="3"/><circle cx="16" cy="37" r="3"/></g></svg></div>
+            <div class="chord">D <svg viewBox="0 0 48 68" aria-label="D chord diagram"><g stroke="#7e8da4" stroke-width="1"><path d="M7 15V61M16 15V61M25 15V61M34 15V61M43 15V61M4 19H46M4 28H46M4 37H46M4 46H46M4 55H46"/></g><g fill="#243650"><circle cx="25" cy="28" r="3"/><circle cx="34" cy="46" r="3"/><circle cx="43" cy="28" r="3"/></g></svg></div>
+            <div class="chord">Em <svg viewBox="0 0 48 68" aria-label="Em chord diagram"><g stroke="#7e8da4" stroke-width="1"><path d="M7 15V61M16 15V61M25 15V61M34 15V61M43 15V61M4 19H46M4 28H46M4 37H46M4 46H46M4 55H46"/></g><g fill="#243650"><circle cx="16" cy="28" r="3"/><circle cx="34" cy="28" r="3"/></g></svg></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-heading">Recent Activity</h2>
+          <div class="activity">
+            <div class="activity-item"><span class="activity-icon">♫</span><div class="activity-copy">Added <strong>Wonderwall</strong><br>Oasis<div class="activity-time">2 hours ago</div></div></div>
+            <div class="activity-item"><span class="activity-icon">✎</span><div class="activity-copy">Edited <strong>Take Me Out</strong><br>Franz Ferdinand<div class="activity-time">Yesterday</div></div></div>
+            <div class="activity-item"><span class="activity-icon">♫</span><div class="activity-copy">Added <strong>Riptide</strong><br>Vance Joy<div class="activity-time">2 days ago</div></div></div>
+            <div class="activity-item"><span class="activity-icon">▱</span><div class="activity-copy">Created collection <strong>Acoustic</strong><div class="activity-time">3 days ago</div></div></div>
+          </div>
+        </section>
+
+        <section class="tip"><span class="tip-icon">💡</span><div><strong>Practice tip</strong><p>Use the capo setting to quickly transpose a song into a more comfortable key.</p></div></section>
+      </aside>
+    </div>
+  </main>
+</div>
+<script>
+  const rows = [...document.querySelectorAll('.song-row')];
+  let activeFilter = 'all';
+
+  function refreshSongs() {
+    const query = document.querySelector('#search').value.trim().toLowerCase();
+    const sortBy = document.querySelector('#sort').value;
+    const visibleRows = rows.filter(row => {
+      const matchesQuery = `${row.dataset.title} ${row.dataset.artist} ${row.textContent}`.toLowerCase().includes(query);
+      const matchesFilter = activeFilter === 'all'
+        || (activeFilter === 'favourites' && row.dataset.fav === 'true')
+        || activeFilter === 'recent'
+        || (activeFilter === 'played' && row.dataset.played);
+      row.hidden = !(matchesQuery && matchesFilter);
+      return matchesQuery && matchesFilter;
+    });
+    visibleRows.sort((a, b) => sortBy === 'title'
+      ? a.dataset.title.localeCompare(b.dataset.title)
+      : sortBy === 'artist'
+        ? a.dataset.artist.localeCompare(b.dataset.artist)
+        : Number(a.dataset.recent) - Number(b.dataset.recent));
+    const list = document.querySelector('#songList');
+    visibleRows.forEach(row => list.appendChild(row));
+  }
+
+  document.querySelector('#search').addEventListener('input', refreshSongs);
+  document.querySelector('#sort').addEventListener('change', refreshSongs);
+  document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+    activeFilter = button.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(tab => tab.classList.toggle('active', tab === button));
+    refreshSongs();
+  }));
+  document.querySelectorAll('.row-action:not(.more)').forEach(button => button.addEventListener('click', () => {
+    const row = button.closest('.song-row');
+    const isFavourite = row.dataset.fav === 'true';
+    row.dataset.fav = String(!isFavourite);
+    button.classList.toggle('fav', !isFavourite);
+    button.textContent = isFavourite ? '♡' : '♥';
+    button.setAttribute('aria-label', `${isFavourite ? 'Add' : 'Remove'} ${row.dataset.title} ${isFavourite ? 'to' : 'from'} favourites`);
+  }));
+  document.querySelectorAll('.play').forEach(button => button.addEventListener('click', () => {
+    const title = button.closest('.song-row').dataset.title;
+    alert(`Prototype only: this would open the chord chart for "${title}".`);
+  }));
+  document.querySelector('#addSong').addEventListener('click', () => alert('Prototype only: connect this button to your Laravel Add Song route.'));
+  document.querySelectorAll('[data-demo]').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    alert(`Prototype only: connect "${link.dataset.demo}" to the relevant Laravel route.`);
+  }));
+</script>
+</body>
+</html>

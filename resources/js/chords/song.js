@@ -60,7 +60,8 @@ async function start() {
   } catch (e) { fail(e.message) }
 
   document.querySelectorAll('[data-mgmt]').forEach(b => { b.hidden = !!token })
-  if (token) $('#home').hidden = true
+  const home = $('#home')
+  if (token && home) home.hidden = true
   $('#print').onclick = () => print()
 
   if (bundle.type === 'song') {
@@ -69,15 +70,19 @@ async function start() {
     if (!token) { manageSong(); api(`/api/songs/${song.id}/opened`, { method: 'POST' }).catch(() => {}) }
   } else if (bundle.type === 'setlist') {
     index = Math.min(Math.max(+qs.get('i') || 0, 0), Math.max(bundle.setlist.items.length - 1, 0))
-    if (!token) $('#home').href = '/setlist?id=' + bundle.setlist.id
-    $('#home').textContent = token ? '' : 'Setlist'
+    if (home) {
+      if (!token) home.href = '/setlist?id=' + bundle.setlist.id
+      home.textContent = token ? '' : 'Setlist'
+    }
     await playSetlist()
   } else {
     const m = bundle.medley
     const text = composeMedley(m.items, bundle.songs)
-    $('#home').href = token ? '#' : '/medley?id=' + m.id
-    $('#home').textContent = token ? '' : 'Edit medley'
-    if (token) $('#home').hidden = true
+    if (home) {
+      home.href = token ? '#' : '/medley?id=' + m.id
+      home.textContent = token ? '' : 'Edit medley'
+      if (token) home.hidden = true
+    }
     $('#share').hidden = !!token
     if (!token) $('#share').onclick = () => import('./share-ui.js').then(x => x.openShareDialog('medley', m.id, m.name))
     await viewer.load({ title: m.name, artist: 'Medley', text, transposable: false, meta: `${m.items.length} songs` }, prefsFor('medley:' + m.id))

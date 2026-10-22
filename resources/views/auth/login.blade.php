@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <h1 class="brand">ThunderChords</h1>
+    <h1 class="brand">Chords</h1>
     <p class="muted">Sign in to your chord library</p>
 
     <form method="POST" action="{{ route('login') }}" class="grid gap-3">

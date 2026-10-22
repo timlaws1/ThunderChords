@@ -1,6 +1,6 @@
 // Service worker: keeps the app and your songs available without a connection.
 // Bump V when you change this file or want everyone to drop old caches.
-const V = 'thunderchords-laravel-v1'
+const V = 'thunderchords-mockup-v2'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', e => e.waitUntil(

@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <h1 class="brand">ThunderChords</h1>
+    <h1 class="brand">Chords</h1>
     <p class="muted">Create an account with an invite code</p>
 
     <form method="POST" action="{{ route('register') }}" class="grid gap-3">
