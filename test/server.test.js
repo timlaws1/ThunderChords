@@ -11,7 +11,11 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'chords-'))
 const SONGS = path.join(tmp, 'songs'), DATA = path.join(tmp, 'data')
 const PORT = 20000 + (process.pid % 10000)
 const base = `http://127.0.0.1:${PORT}`
+const OWNER_EMAIL = 'owner@example.com'
+const PASSWORD = 'password1'
+const INVITE = 'invite-code-xyz'
 let srv, fake, cookie = '', page = 'Am        F\nfirst version of the lyrics here'
+let ownerSongs
 
 const ugPage = body => {
   const data = { store: { page: { data: { tab: { song_name: 'Valerie', artist_name: 'Mark Ronson' }, tab_view: { meta: { tonality: 'Am' }, wiki_tab: { content: body } } } } } }
@@ -19,21 +23,62 @@ const ugPage = body => {
 }
 
 before(async () => {
+  fs.mkdirSync(SONGS, { recursive: true })
   fs.mkdirSync(DATA, { recursive: true })
+  fs.writeFileSync(path.join(SONGS, 'seed-song.txt'), '---\ntitle: Seed\nartist: Tester\nkey: C\n---\nC  G\nhello\n')
   fs.writeFileSync(path.join(DATA, 'shares.json'), JSON.stringify({ expiredtokenexpiredtoken: { type: 'song', id: 'x', created: '2020-01-01T00:00:00Z', expires: '2020-02-01T00:00:00Z' } }))
   fake = http.createServer((_, res) => res.end(ugPage(page)))
   await new Promise(r => fake.listen(0, '127.0.0.1', r))
-  srv = spawn(process.execPath, ['server.js'], { cwd: root, env: { ...process.env, PORT, PASSWORD: 'pw', SONGS_DIR: SONGS, DATA_DIR: DATA } })
-  await new Promise((res, rej) => { srv.stdout.on('data', d => String(d).includes('ThunderChords on') && res()); srv.on('exit', rej); setTimeout(() => rej(new Error('server did not start')), 8000) })
-  const r = await fetch(base + '/login', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'password=pw', redirect: 'manual' })
+  srv = spawn(process.execPath, ['server.js'], {
+    cwd: root,
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      PASSWORD,
+      OWNER_EMAIL,
+      SECRET: 'test-secret-key',
+      INVITE_CODE: INVITE,
+      SONGS_DIR: SONGS,
+      DATA_DIR: DATA,
+      ALLOW_LOCAL_IMPORT: '1',
+    },
+  })
+  await new Promise((res, rej) => { srv.stdout.on('data', d => String(d).includes('ThunderChords on') && res()); srv.on('exit', rej); setTimeout(() => rej(new Error('server did not start')), 12000) })
+  ownerSongs = path.join(DATA, 'users', 'owner', 'songs')
+  const r = await fetch(base + '/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: `email=${encodeURIComponent(OWNER_EMAIL)}&password=${encodeURIComponent(PASSWORD)}`,
+    redirect: 'manual',
+  })
   cookie = r.headers.get('set-cookie').split(';')[0]
 })
 after(() => { srv?.kill(); fake?.close(); fs.rmSync(tmp, { recursive: true, force: true }) })
 
-const call = async (p, { method = 'GET', body, auth = true } = {}) => {
-  const r = await fetch(base + p, { method, redirect: 'manual', headers: { ...(auth && { cookie }), ...(body !== undefined && { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
-  return { status: r.status, json: await r.clone().json().catch(() => null), res: r }
+const call = async (p, { method = 'GET', body, auth = true, cookie: c } = {}) => {
+  const r = await fetch(base + p, {
+    method, redirect: 'manual',
+    headers: { ...((auth || c) && { cookie: c || cookie }), ...(body !== undefined && { 'content-type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  return { status: r.status, json: await r.clone().json().catch(() => null), res: r, text: await r.clone().text().catch(() => '') }
 }
+
+const loginAs = async (email, password) => {
+  const r = await fetch(base + '/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+    redirect: 'manual',
+  })
+  return r.headers.get('set-cookie')?.split(';')[0] || ''
+}
+
+test('owner migration: legacy song files load after first boot', async () => {
+  assert.ok(fs.existsSync(path.join(ownerSongs, 'seed-song.txt')))
+  const list = (await call('/api/songs')).json
+  assert.ok(list.some(s => s.id === 'seed-song' && s.title === 'Seed'))
+})
 
 test('auth: everything private is locked, shared code is public', async () => {
   assert.equal((await call('/api/songs', { auth: false })).status, 401)
@@ -47,6 +92,37 @@ test('auth: everything private is locked, shared code is public', async () => {
   assert.equal((await call('/api/shared/expiredtokenexpiredtoken', { auth: false })).status, 404)
   assert.equal((await call('/api/shared/not-a-real-token-at-all', { auth: false })).status, 404)
   assert.equal((await call('/s/not-a-real-token-at-all', { auth: false })).status, 404)
+})
+
+test('signup: bad invite rejected; good invite creates isolated library', async () => {
+  const bad = await fetch(base + '/signup', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'email=friend%40example.com&password=password2&invite=wrong',
+    redirect: 'manual',
+  })
+  assert.equal(bad.status, 403)
+
+  const good = await fetch(base + '/signup', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: `email=friend%40example.com&password=password2&invite=${encodeURIComponent(INVITE)}&name=Friend`,
+    redirect: 'manual',
+  })
+  assert.equal(good.status, 302)
+  const friendCookie = good.headers.get('set-cookie').split(';')[0]
+
+  const friendSongs = (await call('/api/songs', { cookie: friendCookie })).json
+  assert.equal(friendSongs.length, 0)
+  assert.ok(!(await call('/api/songs/seed-song', { cookie: friendCookie })).json?.title)
+
+  await call('/api/songs/import', {
+    method: 'POST', cookie: friendCookie,
+    body: { title: 'Friend Only', artist: 'Pal', text: 'G  D\nonly mine' },
+  })
+  assert.equal((await call('/api/songs', { cookie: friendCookie })).json.length, 1)
+  assert.equal((await call('/api/songs/pal-friend-only')).status, 404) // owner cannot see friend's song
+  assert.ok((await call('/api/songs')).json.every(s => s.id !== 'pal-friend-only'))
 })
 
 test('songs: import, search, opened, prefs sync', async () => {
@@ -75,18 +151,18 @@ test('re-import previews, replaces, and keeps 5 old versions', async () => {
   const r = await call('/api/songs/mark-ronson-valerie/reimport', { method: 'POST' })
   assert.match(r.json.body, /second version/)
   assert.match(r.json.current, /Am/)
-  assert.equal((await call('/api/songs/mark-ronson-valerie')).json.body.includes('second version'), false) // preview does not save
+  assert.equal((await call('/api/songs/mark-ronson-valerie')).json.body.includes('second version'), false)
   for (let i = 0; i < 7; i++) {
     const x = await call('/api/songs/mark-ronson-valerie/replace', { method: 'POST', body: { body: `Am\nversion ${i}` } })
     assert.equal(x.status, 200)
     await new Promise(r => setTimeout(r, 3))
   }
-  assert.equal(fs.readdirSync(path.join(SONGS, '.history')).filter(f => f.startsWith('mark-ronson-valerie.')).length, 5)
+  assert.equal(fs.readdirSync(path.join(ownerSongs, '.history')).filter(f => f.startsWith('mark-ronson-valerie.')).length, 5)
   const s = (await call('/api/songs/mark-ronson-valerie')).json
   assert.equal(s.title, 'Valerie')
   assert.equal(s.key, 'Am')
   assert.match(s.body, /version 6/)
-  assert.equal((await call('/api/songs/coldplay-yellow/reimport', { method: 'POST' })).status, 422) // pasted, no source
+  assert.equal((await call('/api/songs/coldplay-yellow/reimport', { method: 'POST' })).status, 422)
 })
 
 test('preview does not save; confirm-save and updateMeta replace', async () => {
@@ -161,7 +237,6 @@ test('share links: read-only, scoped, revocable', async () => {
   assert.equal(JSON.stringify(shared.json).includes('secret-tag'), false)
   assert.equal('source' in shared.json.song, false)
   assert.equal((await call('/s/' + link.token, { auth: false })).status, 200)
-  // the link opens nothing else
   assert.equal((await call('/api/songs/mark-ronson-valerie', { auth: false })).status, 401)
   assert.equal((await call('/api/songs', { auth: false })).status, 401)
   assert.equal((await call('/api/shares?type=song&id=coldplay-yellow', { auth: false })).status, 401)
@@ -170,7 +245,7 @@ test('share links: read-only, scoped, revocable', async () => {
   const sb = (await call('/api/shared/' + sl.token, { auth: false })).json
   assert.equal(sb.type, 'setlist')
   assert.equal(Object.keys(sb.songs).length, 2)
-  assert.equal(JSON.stringify(sb).includes('127.0.0.1'), false) // no source URLs
+  assert.equal(JSON.stringify(sb).includes('127.0.0.1'), false)
 
   assert.equal((await call('/api/shares?type=song&id=coldplay-yellow')).json.length, 1)
   assert.equal((await call('/api/shares/' + link.token, { method: 'DELETE' })).status, 200)
@@ -181,9 +256,24 @@ test('share links: read-only, scoped, revocable', async () => {
 })
 
 test('hand-edited files are picked up and delete works', async () => {
-  fs.writeFileSync(path.join(SONGS, 'me-hand-made.txt'), '---\ntitle: Hand made\nartist: Me\n---\nG  D\nla la\n')
+  fs.writeFileSync(path.join(ownerSongs, 'me-hand-made.txt'), '---\ntitle: Hand made\nartist: Me\n---\nG  D\nla la\n')
   await new Promise(r => setTimeout(r, 900))
   assert.ok((await call('/api/songs')).json.some(s => s.id === 'me-hand-made'))
   assert.equal((await call('/api/songs/me-hand-made', { method: 'DELETE' })).status, 200)
-  assert.equal(fs.existsSync(path.join(SONGS, 'me-hand-made.txt')), false)
+  assert.equal(fs.existsSync(path.join(ownerSongs, 'me-hand-made.txt')), false)
+})
+
+test('change password and re-login', async () => {
+  const form = await fetch(base + '/account/password', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+    body: 'current=password1&password=password9',
+    redirect: 'manual',
+  })
+  assert.equal(form.status, 200)
+  assert.match(await form.text(), /Password updated/)
+  const again = await loginAs(OWNER_EMAIL, 'password9')
+  assert.ok(again.startsWith('sid='))
+  cookie = again
+  // restore for any later tests (none) — keep new password
 })

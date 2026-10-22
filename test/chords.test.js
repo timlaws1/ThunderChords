@@ -2,7 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import { transposeChord, transposeLine, transposeText, isChordLine, usesFlats } from '../public/chords.js'
-import { normalize, parseSheet, importFromUrl } from '../importer.js'
+import { normalize, parseSheet, importFromUrl, assertSafeImportUrl } from '../importer.js'
+
+process.env.ALLOW_LOCAL_IMPORT = '1'
 
 test('transposeChord', () => {
   assert.equal(transposeChord('Am7', 2), 'Bm7')
@@ -89,4 +91,11 @@ test('importFromUrl falls back to a <pre> block', async () => {
     assert.equal(s.title, 'Test Song')
     assert.ok(s.body.startsWith('Am       F\n'))
   } finally { server.close() }
+})
+
+test('assertSafeImportUrl refuses private addresses', async () => {
+  await assert.rejects(() => assertSafeImportUrl('http://127.0.0.1/', { allowLocal: false }), /cannot be imported/)
+  await assert.rejects(() => assertSafeImportUrl('http://192.168.1.1/', { allowLocal: false }), /cannot be imported/)
+  await assert.rejects(() => assertSafeImportUrl('http://localhost/', { allowLocal: false }), /cannot be imported/)
+  await assert.rejects(() => assertSafeImportUrl('file:///etc/passwd', { allowLocal: false }), /http and https/)
 })

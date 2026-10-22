@@ -2,7 +2,7 @@ import { api, esc, applyNet, $ } from './api.js'
 
 async function load() {
   const lists = await api('/api/setlists')
-  $('#list').innerHTML = lists.map(l => `<li><a href="/setlist?id=${encodeURIComponent(l.id)}"><span class="t">${esc(l.name)}</span><span class="a">${l.count} songs</span></a><button data-del="${esc(l.id)}" data-needs-net>Delete</button></li>`).join('')
+  $('#list').innerHTML = lists.map(l => `<li><a href="/setlist?id=${encodeURIComponent(l.id)}"><span class="t">${esc(l.name)}</span><span class="a">${l.count} songs</span></a><button class="btn" data-del="${esc(l.id)}" data-needs-net>Delete</button></li>`).join('')
   $('#empty').hidden = lists.length > 0
   applyNet()
 }

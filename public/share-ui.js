@@ -9,11 +9,11 @@ export async function openShareDialog(type, id, label) {
 
   async function draw(err = '') {
     const list = await api(`/api/shares?type=${type}&id=${encodeURIComponent(id)}`)
-    dlg.innerHTML = `<h2>Share ${esc(label)}</h2>
+    dlg.innerHTML = `<h2 class="font-brand">Share ${esc(label)}</h2>
       <p class="muted">Anyone with a link can view it, read-only, without signing in.</p>
       <section><div class="row"><select id="sexp"><option value="30d">Expires in 30 days</option><option value="7d">Expires in 7 days</option><option value="never">Never expires</option></select><button id="smake" class="primary">Create link</button></div></section>
-      <ul class="shares">${list.map(s => `<li><input readonly value="${esc(location.origin + s.url)}"><button data-copy>Copy</button><button data-rev="${esc(s.token)}">Revoke</button><span class="muted">${s.expires ? 'Expires ' + new Date(s.expires).toLocaleDateString() : 'No expiry'}</span></li>`).join('') || '<li class="muted">No active links.</li>'}</ul>
-      <p class="err">${esc(err)}</p><button id="sclose">Close</button>`
+      <ul class="shares">${list.map(s => `<li><input readonly value="${esc(location.origin + s.url)}"><button class="btn" data-copy>Copy</button><button class="btn" data-rev="${esc(s.token)}">Revoke</button><span class="muted">${s.expires ? 'Expires ' + new Date(s.expires).toLocaleDateString() : 'No expiry'}</span></li>`).join('') || '<li class="muted">No active links.</li>'}</ul>
+      <p class="err">${esc(err)}</p><button id="sclose" class="btn">Close</button>`
   }
 
   dlg.addEventListener('click', async e => {

@@ -16,7 +16,7 @@ const hasCustom = it => typeof it.body === 'string' && !!it.body.trim()
 
 function row(it, i) {
   const s = songs[it.songId]
-  if (!s) return `<li data-i="${i}"><span class="grip">&equiv;</span><div class="meta"><b>Song removed</b></div><button class="up">Up</button><button class="down">Down</button><button data-a="rm">Remove</button></li>`
+  if (!s) return `<li data-i="${i}"><span class="grip">&equiv;</span><div class="meta"><b>Song removed</b></div><button class="up btn">Up</button><button class="down btn">Down</button><button class="btn" data-a="rm">Remove</button></li>`
   const g = keyOf(it)
   const key = g ? `${transposeChord(g.key, it.t, usesFlats(s.body))}${it.guess || g.guessed ? ' (guessed)' : ''}` : 'no key'
   let sections
@@ -30,10 +30,10 @@ function row(it, i) {
   }
   return `<li data-i="${i}"><span class="grip" title="Drag to reorder">&equiv;</span>
     <div class="meta"><b>${esc(s.title)}</b><span class="muted">${esc(s.artist)}, key ${esc(key)}</span>${sections}</div>
-    <div class="grp"><span>T</span><button data-a="t-">-</button><b>${it.t > 0 ? '+' : ''}${it.t}</b><button data-a="t+">+</button></div>
-    <div class="grp"><span>C</span><button data-a="c-">-</button><b>${it.c}</b><button data-a="c+">+</button></div>
-    <button data-a="edit">Edit text</button>
-    <button class="up" aria-label="Move up">Up</button><button class="down" aria-label="Move down">Down</button><button data-a="rm">Remove</button></li>`
+    <div class="grp"><span>T</span><button class="btn" data-a="t-">-</button><b>${it.t > 0 ? '+' : ''}${it.t}</b><button class="btn" data-a="t+">+</button></div>
+    <div class="grp"><span>C</span><button class="btn" data-a="c-">-</button><b>${it.c}</b><button class="btn" data-a="c+">+</button></div>
+    <button class="btn" data-a="edit">Edit text</button>
+    <button class="up btn" aria-label="Move up">Up</button><button class="down btn" aria-label="Move down">Down</button><button class="btn" data-a="rm">Remove</button></li>`
 }
 
 function render() {
@@ -129,7 +129,7 @@ $('#sq').oninput = () => {
     const q = $('#sq').value.trim()
     if (!q) { $('#results').innerHTML = ''; return }
     const found = (await api('/api/songs?q=' + encodeURIComponent(q))).slice(0, 20)
-    $('#results').innerHTML = found.map(s => `<li><span class="meta"><b>${esc(s.title)}</b> <span class="muted">${esc(s.artist)}</span></span><button data-add="${esc(s.id)}" data-needs-net>Add</button></li>`).join('')
+    $('#results').innerHTML = found.map(s => `<li><span class="meta"><b>${esc(s.title)}</b> <span class="muted">${esc(s.artist)}</span></span><button class="btn" data-add="${esc(s.id)}" data-needs-net>Add</button></li>`).join('')
     applyNet()
   }, 200)
 }

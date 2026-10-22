@@ -9,12 +9,12 @@ import { createScroller } from './scroll.js'
 import { esc, store } from './api.js'
 
 const TOOLS = `
-<div class="grp" data-tr><span>Transpose</span><button id="tdn" aria-label="Down a semitone">-</button><b id="tval" title="Tap to reset"></b><button id="tup" aria-label="Up a semitone">+</button></div>
-<div class="grp" data-tr><span>Capo</span><button id="cdn" aria-label="Capo down">-</button><b id="cval" title="Tap to reset"></b><button id="cup" aria-label="Capo up">+</button></div>
-<div class="grp" data-tr><button id="flat" title="Switch between sharps and flats"></button><button id="finder">Easier chords</button></div>
-<div class="grp"><span>Text</span><button id="sdn" aria-label="Smaller text">A-</button><button id="sup" aria-label="Larger text">A+</button><button id="cols" hidden></button></div>
-<div class="grp" data-scroll><button id="play" class="primary"></button><button id="sl" aria-label="Slower">-</button><b id="sval"></b><button id="sf" aria-label="Faster">+</button></div>
-<div class="grp" id="pager" hidden><button id="pprev" aria-label="Previous page">Back</button><b id="pnum"></b><button id="pnext" aria-label="Next page">Next</button></div>`
+<div class="grp" data-tr><span>Transpose</span><button id="tdn" class="btn" aria-label="Down a semitone">-</button><b id="tval" title="Tap to reset"></b><button id="tup" class="btn" aria-label="Up a semitone">+</button></div>
+<div class="grp" data-tr><span>Capo</span><button id="cdn" class="btn" aria-label="Capo down">-</button><b id="cval" title="Tap to reset"></b><button id="cup" class="btn" aria-label="Capo up">+</button></div>
+<div class="grp" data-tr><button id="flat" class="btn" title="Switch between sharps and flats"></button><button id="finder" class="btn">Easier chords</button></div>
+<div class="grp"><span>Text</span><button id="sdn" class="btn" aria-label="Smaller text">A-</button><button id="sup" class="btn" aria-label="Larger text">A+</button><button id="cols" class="btn" hidden></button></div>
+<div class="grp" data-scroll><button id="play" class="primary"></button><button id="sl" class="btn" aria-label="Slower">-</button><b id="sval"></b><button id="sf" class="btn" aria-label="Faster">+</button></div>
+<div class="grp" id="pager" hidden><button id="pprev" class="btn" aria-label="Previous page">Back</button><b id="pnum"></b><button id="pnext" class="btn" aria-label="Next page">Next</button></div>`
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 
@@ -126,7 +126,7 @@ export function mountViewer() {
     if (!current) { panel.textContent = 'No chords found in this song.'; panel.hidden = false; return }
     const pct = n => Math.round(n * 100) + '% easy'
     panel.innerHTML = `<p class="muted">Now: ${esc(current.chords.join(' '))} (${pct(current.easy)})</p>` + options.map(o =>
-      `<button data-t="${o.t}" data-c="${o.c}">${o.c ? `Capo ${o.c}` : 'No capo'}${o.t ? `, ${o.t > 0 ? '+' : ''}${o.t} semitones` : ''}: ${esc(o.chords.join(' '))} (${pct(o.easy)})</button>`).join('')
+      `<button class="btn" data-t="${o.t}" data-c="${o.c}">${o.c ? `Capo ${o.c}` : 'No capo'}${o.t ? `, ${o.t > 0 ? '+' : ''}${o.t} semitones` : ''}: ${esc(o.chords.join(' '))} (${pct(o.easy)})</button>`).join('')
     panel.hidden = false
   })
   $('#fpanel').addEventListener('click', e => {

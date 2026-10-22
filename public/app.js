@@ -19,7 +19,7 @@ function render() {
   const kind = $('#kind').value, sort = $('#sort').value
   const tags = [...new Set(songs.flatMap(s => s.tags))].sort()
   if (tag && !tags.includes(tag)) tag = null
-  $('#tags').innerHTML = tags.map(t => `<button class="chip${t === tag ? ' on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')
+  $('#tags').innerHTML = tags.map(t => `<button type="button" class="chip${t === tag ? ' on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')
 
   const q = $('#q').value.toLowerCase().trim()
   const med = medleys.filter(m => !q || m.name.toLowerCase().includes(q)).map(m => ({ id: m.id, title: m.name, artist: `Medley, ${m.count} songs`, key: '', tags: [], added: m.created || '', lastOpened: '', medley: true }))
@@ -35,7 +35,7 @@ function render() {
     const acts = s.medley
       ? `<span class="rowacts"><a class="btn" href="/medley?id=${encodeURIComponent(s.id)}" data-needs-net>Edit</a><button type="button" data-del-medley="${esc(s.id)}" data-needs-net>Delete</button></span>`
       : ''
-    return `<li>${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''}</a>${acts}</li>`
+    return `<li class="group">${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''}</a>${acts}</li>`
   }).join('')
   $('#empty').hidden = rows.length > 0
   $('#selbar').hidden = picked.size === 0

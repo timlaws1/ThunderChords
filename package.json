@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "ThunderChords — personal self-hosted chord sheet library",
+  "description": "ThunderChords — self-hosted chord sheet library with invite-only accounts",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/style.css",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./public/style.css --watch",
     "test": "node --test test/*.test.js"
   },
   "engines": {
@@ -15,5 +17,9 @@
   "dependencies": {
     "@hono/node-server": "^2.1.5",
     "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
   }
 }
