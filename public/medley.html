@@ -30,7 +30,7 @@
     <span id="status" class="muted"></span>
   </div>
   <datalist id="keys"></datalist>
-  <p class="muted">Tick sections to use only those parts of a song. With none ticked the whole song is used. Keys marked "guessed" come from the first chord, so check them.</p>
+  <p class="muted">Tick sections, or Edit text to shorten a song for this medley only — the library copy stays unchanged. Keys marked "guessed" come from the first chord.</p>
   <ul id="items" class="items"></ul>
   <p id="empty" class="muted" hidden>No songs yet. Search below to add some.</p>
   <h2>Add songs</h2>
@@ -39,6 +39,18 @@
   <h2>Preview</h2>
   <div id="preview" class="preview"></div>
 </main>
+
+<dialog id="edlg" class="wide">
+  <h2 id="edtitle">Edit text</h2>
+  <p class="muted">Only used in this medley. The original song in your library is not changed.</p>
+  <textarea id="ebody" spellcheck="false"></textarea>
+  <p id="eerr" class="err"></p>
+  <div class="dlgactions">
+    <button type="button" id="ereset">Use original song</button>
+    <button type="button" id="eclose">Cancel</button>
+    <button type="button" id="eok" class="primary">Use this text</button>
+  </div>
+</dialog>
 <script type="module" src="/medley.js"></script>
 </body>
 </html>

@@ -110,6 +110,7 @@ dialog::backdrop{background:#0a0e1488}
 dialog h2{margin:0;font-size:1.25rem}
 dialog section{display:grid;gap:8px;margin-bottom:18px}
 dialog textarea{min-height:140px;font-family:var(--font-mono)}
+#edlg #ebody{min-height:50vh;width:100%;white-space:pre;font-family:var(--font-mono)}
 .dlghead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .iconbtn{border:none;background:transparent;padding:4px 8px;color:var(--mute);font-size:1.1rem;line-height:1}
 .addform{display:grid;gap:12px}

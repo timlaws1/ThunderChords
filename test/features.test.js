@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { classify, isChordLine, transposeChord, transposeText } from '../public/chords.js'
-import { sectionsOf, hasMarkers, keyInfo, guessKey, shiftFor, orderByKey, suggestCapo, composeMedley } from '../public/music.js'
+import { sectionsOf, hasMarkers, keyInfo, guessKey, shiftFor, orderByKey, suggestCapo, composeMedley, medleySource } from '../public/music.js'
 import { moveItem } from '../public/reorder.js'
 import { normalize } from '../importer.js'
 
@@ -77,6 +77,16 @@ test('composeMedley picks sections, transposes and adds dividers', () => {
     { songId: 'gone', t: 0, c: 0 },
   ], songs)
   assert.equal(text, '=== One, key Bm, +2 ===\n[Chorus]\nD  A\nsing\n\n=== Next: Two, key G, capo 2 ===\nG  D\nhi\n\n=== Song removed ===\n(this song was deleted)')
+})
+
+test('medley custom body overrides sections; original song untouched', () => {
+  const song = { id: 'a', title: 'One', key: 'C', capo: 0, body: '[Verse]\nC  G\nfull\n\n[Chorus]\nAm  F\nchorus' }
+  const custom = { songId: 'a', t: 0, c: 0, sections: ['Chorus'], body: 'C  G\nshort only\n' }
+  assert.equal(medleySource(custom, song), 'C  G\nshort only')
+  assert.equal(medleySource({ songId: 'a', sections: ['Chorus'] }, song), '[Chorus]\nAm  F\nchorus')
+  assert.match(composeMedley([custom], { a: song }), /short only/)
+  assert.ok(!composeMedley([custom], { a: song }).includes('chorus'))
+  assert.equal(song.body.includes('full'), true)
 })
 
 test('moveItem', () => {

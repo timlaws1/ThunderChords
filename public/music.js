@@ -101,14 +101,23 @@ export function suggestCapo(body, { maxCapo = 7, maxShift = 2, flats = usesFlats
   return { current: { easy: evalShift(0).easy, chords: evalShift(0).chords }, options: top }
 }
 
-// ---- medley: items are {songId, t, c, sections}, songs is {id: song} ----
+// Sheet text for one medley item: optional custom body, else selected sections, else whole song.
+export function medleySource(it, song) {
+  if (!song) return ''
+  if (typeof it.body === 'string' && it.body.trim()) return it.body.replace(/\s+$/, '')
+  if (it.sections?.length) {
+    return sectionsOf(song.body).filter(x => it.sections.includes(x.id)).map(x => x.text).join('\n\n')
+  }
+  return song.body.replace(/\s+$/, '')
+}
+
+// ---- medley: items are {songId, t, c, sections?, body?}, songs is {id: song} ----
 export function composeMedley(items, songs) {
   return items.map((it, i) => {
     const s = songs[it.songId]
     if (!s) return '=== Song removed ===\n(this song was deleted)'
     const flats = usesFlats(s.body)
-    const secs = sectionsOf(s.body)
-    const picked = it.sections?.length ? secs.filter(x => it.sections.includes(x.id)).map(x => x.text).join('\n\n') : s.body.replace(/\s+$/, '')
+    const picked = medleySource(it, s)
     const t = it.t || 0
     const key = s.key ? transposeChord(s.key, t, flats) : ''
     const capo = (s.capo || 0) + (it.c || 0)

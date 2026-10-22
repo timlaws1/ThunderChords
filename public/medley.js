@@ -1,31 +1,38 @@
 import { api, esc, applyNet, $ } from './api.js'
 import { transposeChord, usesFlats } from './chords.js'
-import { sectionsOf, hasMarkers, guessKey, shiftFor, orderByKey, composeMedley } from './music.js'
+import { sectionsOf, hasMarkers, guessKey, shiftFor, orderByKey, composeMedley, medleySource } from './music.js'
 import { renderSheet } from './sheet.js'
 import { enableReorder, moveItem } from './reorder.js'
 
 const qs = new URLSearchParams(location.search)
 let id = qs.get('id')
-let items = [], songs = {}
+let items = [], songs = {}, editIndex = -1
 const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 $('#keys').innerHTML = NOTES.flatMap(n => [n, n + 'm']).map(k => `<option value="${k}">`).join('')
 
 const status = s => { $('#status').textContent = s }
 const keyOf = it => { const s = songs[it.songId]; return s ? guessKey(s.body, s.key) : null }
+const hasCustom = it => typeof it.body === 'string' && !!it.body.trim()
 
 function row(it, i) {
   const s = songs[it.songId]
   if (!s) return `<li data-i="${i}"><span class="grip">&equiv;</span><div class="meta"><b>Song removed</b></div><button class="up">Up</button><button class="down">Down</button><button data-a="rm">Remove</button></li>`
   const g = keyOf(it)
   const key = g ? `${transposeChord(g.key, it.t, usesFlats(s.body))}${it.guess || g.guessed ? ' (guessed)' : ''}` : 'no key'
-  const secs = sectionsOf(s.body)
-  const sections = hasMarkers(s.body)
-    ? `<details><summary>${it.sections?.length ? `${it.sections.length} of ${secs.length} sections` : 'Whole song'}</summary><div class="secs">${secs.map(x => `<label><input type="checkbox" data-sec="${esc(x.id)}"${it.sections?.includes(x.id) ? ' checked' : ''}> ${esc(x.id)}</label>`).join('')}</div></details>`
-    : '<span class="muted">No section markers, whole song</span>'
+  let sections
+  if (hasCustom(it)) {
+    sections = '<span class="muted">Custom text for this medley</span>'
+  } else if (hasMarkers(s.body)) {
+    const secs = sectionsOf(s.body)
+    sections = `<details><summary>${it.sections?.length ? `${it.sections.length} of ${secs.length} sections` : 'Whole song'}</summary><div class="secs">${secs.map(x => `<label><input type="checkbox" data-sec="${esc(x.id)}"${it.sections?.includes(x.id) ? ' checked' : ''}> ${esc(x.id)}</label>`).join('')}</div></details>`
+  } else {
+    sections = '<span class="muted">No section markers, whole song</span>'
+  }
   return `<li data-i="${i}"><span class="grip" title="Drag to reorder">&equiv;</span>
     <div class="meta"><b>${esc(s.title)}</b><span class="muted">${esc(s.artist)}, key ${esc(key)}</span>${sections}</div>
     <div class="grp"><span>T</span><button data-a="t-">-</button><b>${it.t > 0 ? '+' : ''}${it.t}</b><button data-a="t+">+</button></div>
     <div class="grp"><span>C</span><button data-a="c-">-</button><b>${it.c}</b><button data-a="c+">+</button></div>
+    <button data-a="edit">Edit text</button>
     <button class="up" aria-label="Move up">Up</button><button class="down" aria-label="Move down">Down</button><button data-a="rm">Remove</button></li>`
 }
 
@@ -47,6 +54,7 @@ $('#items').addEventListener('click', e => {
   const a = e.target.dataset.a
   if (!a) return
   const i = +e.target.closest('li').dataset.i, it = items[i]
+  if (a === 'edit') return openEdit(i)
   if (a === 'rm') items.splice(i, 1)
   else if (a[0] === 't') it.t = Math.min(11, Math.max(-11, it.t + (a[1] === '+' ? 1 : -1)))
   else it.c = Math.min(11, Math.max(0, it.c + (a[1] === '+' ? 1 : -1)))
@@ -55,10 +63,41 @@ $('#items').addEventListener('click', e => {
 $('#items').addEventListener('change', e => {
   if (!e.target.dataset.sec) return
   const li = e.target.closest('li'), it = items[+li.dataset.i]
+  if (hasCustom(it)) return
   const ticked = [...li.querySelectorAll('[data-sec]:checked')].map(x => x.dataset.sec)
   it.sections = ticked.length ? ticked : null
   render()
 })
+
+function openEdit(i) {
+  const it = items[i], s = songs[it.songId]
+  if (!s) return
+  editIndex = i
+  $('#edtitle').textContent = `Edit text — ${s.title}`
+  $('#ebody').value = medleySource(it, s)
+  $('#eerr').textContent = ''
+  $('#edlg').showModal()
+  $('#ebody').focus()
+}
+$('#eclose').onclick = () => $('#edlg').close()
+$('#edlg').addEventListener('click', e => { if (e.target === $('#edlg')) $('#edlg').close() })
+$('#eok').onclick = () => {
+  const text = $('#ebody').value.replace(/\r\n/g, '\n').replace(/\s+$/, '')
+  if (!text.trim()) return ($('#eerr').textContent = 'Text cannot be empty.')
+  const it = items[editIndex]
+  it.body = text + '\n'
+  it.sections = null
+  $('#edlg').close()
+  status('Custom text set for this medley. Save when ready.')
+  render()
+}
+$('#ereset').onclick = () => {
+  const it = items[editIndex]
+  delete it.body
+  $('#edlg').close()
+  status('Using the original song text again.')
+  render()
+}
 
 $('#match').onclick = () => {
   const target = $('#tkey').value.trim()

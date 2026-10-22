@@ -405,7 +405,15 @@ function cleanItems(list, withSections) {
     .filter(i => i && typeof i.songId === 'string' && /^[a-z0-9-]+$/.test(i.songId))
     .map(i => {
       const o = { songId: i.songId, t: clamp(i.t, -11, 11), c: clamp(i.c, 0, 11) }
-      if (withSections) o.sections = Array.isArray(i.sections) && i.sections.length ? i.sections.slice(0, 40).map(s => String(s).slice(0, 80)) : null
+      if (withSections) {
+        const custom = typeof i.body === 'string' ? i.body.replace(/\r\n/g, '\n').replace(/\s+$/, '') : ''
+        if (custom) {
+          o.body = custom.slice(0, 100000) + '\n'
+          o.sections = null
+        } else {
+          o.sections = Array.isArray(i.sections) && i.sections.length ? i.sections.slice(0, 40).map(s => String(s).slice(0, 80)) : null
+        }
+      }
       return o
     })
 }
