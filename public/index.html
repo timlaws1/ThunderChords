@@ -65,13 +65,13 @@
         <textarea id="text" placeholder="Paste the chord sheet here" spellcheck="false"></textarea>
       </div>
       <div class="dlgactions">
-        <button type="submit" id="doPreview" class="primary">Import</button>
+        <button type="submit" id="doPreview" class="primary" formnovalidate>Import</button>
       </div>
     </div>
 
     <div id="step-preview" hidden>
       <p id="dupnote" class="warn" hidden></p>
-      <div class="row"><input id="ftitle" placeholder="Title" required autocomplete="off"><input id="fartist" placeholder="Artist" autocomplete="off"></div>
+      <div class="row"><input id="ftitle" placeholder="Title" autocomplete="off"><input id="fartist" placeholder="Artist" autocomplete="off"></div>
       <div class="row">
         <label class="field">Key <input id="fkey" placeholder="e.g. Am" autocomplete="off"><span id="fkeyhint" class="muted" hidden>guessed</span></label>
         <label class="field">Capo <input id="fcapo" type="number" min="0" max="12" placeholder="0"></label>

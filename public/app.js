@@ -180,6 +180,11 @@ $('#addform').onsubmit = async e => {
     })
   } else {
     await runBusy($('#doSave'), 'Saving...', async () => {
+      const title = $('#ftitle').value.trim()
+      if (!title) {
+        $('#ftitle').focus()
+        throw new Error('Add a title and try again.')
+      }
       const source = $('#fsource').value.trim()
       if (preview?.duplicateId && source === (preview.source || '')) {
         throw new Error('This link is already saved. Open the existing song, or change the source.')
@@ -187,7 +192,7 @@ $('#addform').onsubmit = async e => {
       const r = await api('/api/songs/import', {
         method: 'POST',
         body: {
-          title: $('#ftitle').value, artist: $('#fartist').value,
+          title, artist: $('#fartist').value,
           key: $('#fkey').value, capo: $('#fcapo').value,
           body: preview.body, source, text: mode === 'paste' ? $('#text').value : undefined,
         },
