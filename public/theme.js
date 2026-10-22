@@ -1,7 +1,7 @@
 // Early theme boot + toggle. Load as a classic script in <head> before paint.
 (function () {
   const KEY = 'tc-theme'
-  const COLORS = { dark: '#12171f', light: '#ebe6dc' }
+  const COLORS = { dark: '#0f172a', light: '#f8fafc' }
 
   const system = () => (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
@@ -19,8 +19,11 @@
     const m = document.querySelector('meta[name="theme-color"]')
     if (m) m.content = COLORS[theme]
     for (const b of document.querySelectorAll('[data-theme-toggle]')) {
-      b.textContent = theme === 'dark' ? 'Light' : 'Dark'
+      if (!b.classList.contains('theme-icon')) {
+        b.textContent = theme === 'dark' ? 'Light' : 'Dark'
+      }
       b.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme')
+      b.setAttribute('title', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme')
     }
     if (persist) try { localStorage.setItem(KEY, theme) } catch {}
     return theme

@@ -33,7 +33,8 @@ class SongApiTest extends TestCase
         $this->actingAs($user)
             ->getJson('/api/songs')
             ->assertOk()
-            ->assertJsonFragment(['title' => 'Hello', 'artist' => 'Band']);
+            ->assertJsonFragment(['title' => 'Hello', 'artist' => 'Band'])
+            ->assertJsonPath('0.chords', ['Am', 'F']);
 
         $this->assertSame([], $user->songs()->first()->tags);
     }

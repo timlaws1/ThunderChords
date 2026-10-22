@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\KeyGuesser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -76,6 +77,27 @@ class Song extends Model
     }
 
     /**
+     * Distinct chords from the sheet, in order of first appearance.
+     *
+     * @return list<string>
+     */
+    public function previewChords(int $limit = 6): array
+    {
+        $seen = [];
+        foreach (app(KeyGuesser::class)->chordsIn($this->body) as $chord) {
+            if (isset($seen[$chord])) {
+                continue;
+            }
+            $seen[$chord] = true;
+            if (count($seen) >= $limit) {
+                break;
+            }
+        }
+
+        return array_keys($seen);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toBriefArray(): array
@@ -92,6 +114,7 @@ class Song extends Model
 
         $data['lastOpened'] = $open?->last_opened?->toIso8601String() ?? '';
         $data['openCount'] = $open ? (int) $open->count : 0;
+        $data['chords'] = $this->previewChords();
 
         return $data;
     }

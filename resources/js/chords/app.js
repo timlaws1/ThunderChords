@@ -2,7 +2,7 @@ import { api, esc, store, applyNet, $ } from './api.js'
 import { renderSheet } from './sheet.js'
 
 const UNTAGGED = '__untagged__'
-let allSongs = [], songs = [], medleys = [], tag = null, view = 'all'
+let allSongs = [], songs = [], medleys = [], setlists = [], tag = null, view = 'all'
 const picked = new Set()
 const importTags = new Set()
 $('#sort').value = store.get('sort') || 'artist'
@@ -41,6 +41,16 @@ function activeSort() {
   return $('#sort').value
 }
 
+function setNavOpen(open) {
+  const dash = document.querySelector('.dash')
+  const toggle = $('#nav-toggle')
+  const scrim = $('#dash-scrim')
+  if (!dash) return
+  dash.classList.toggle('open', open)
+  if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+  if (scrim) scrim.hidden = !open
+}
+
 function renderCats() {
   const { counts, untagged } = tagCounts()
   const names = [...counts.keys()].sort((a, b) => a.localeCompare(b))
@@ -57,15 +67,30 @@ function renderCats() {
   $('#tags').innerHTML = rows.join('')
 }
 
+function renderSetlistsNav() {
+  const el = $('#setlists-nav')
+  if (!el) return
+  if (!setlists.length) {
+    el.innerHTML = `<a class="set-link" href="/setlists"><span class="muted" style="color:inherit;opacity:.75">No setlists yet</span></a>`
+    return
+  }
+  el.innerHTML = setlists.slice(0, 8).map(s =>
+    `<a class="set-link" href="/setlist?id=${encodeURIComponent(s.id)}">${esc(s.name)} <span class="n">${s.count ?? 0}</span></a>`
+  ).join('')
+}
+
 function renderStats() {
   const artists = new Set(allSongs.map(s => s.artist).filter(Boolean)).size
   const cats = tagCounts().counts.size
-  $('#stats').innerHTML = [
-    ['Total songs', allSongs.length],
-    ['Artists', artists],
-    ['Categories', cats],
-    ['Medleys', medleys.length],
-  ].map(([label, n]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`).join('')
+  const items = [
+    ['Total songs', allSongs.length, ''],
+    ['Artists', artists, 'teal'],
+    ['Categories', cats, 'purple'],
+    ['Medleys', medleys.length, 'pink'],
+  ]
+  $('#stats').innerHTML = items.map(([label, n, tone]) =>
+    `<div class="stat"><span class="stat-ico ${tone}" aria-hidden="true">${n}</span><div><b>${n}</b><span>${label}</span></div></div>`
+  ).join('')
 }
 
 function renderRecent() {
@@ -81,8 +106,11 @@ function renderRecent() {
 
 function songMeta(s) {
   const bits = []
-  if (s.capo) bits.push(`<span class="capo">Capo ${esc(s.capo)}</span>`)
-  for (const t of (s.tags || [])) bits.push(`<span class="tag">${esc(t)}</span>`)
+  if (s.key) bits.push(`<span class="pill">${esc(s.key)}</span>`)
+  if (s.capo) bits.push(`<span class="pill">Capo ${esc(s.capo)}</span>`)
+  for (const t of (s.tags || []).slice(0, 3)) bits.push(`<span class="pill">${esc(t)}</span>`)
+  const chords = (s.chords || []).slice(0, 5)
+  if (chords.length) bits.push(`<span class="chords">${chords.map(esc).join(' ')}</span>`)
   return bits.length ? `<span class="meta-row">${bits.join('')}</span>` : ''
 }
 
@@ -90,6 +118,7 @@ function render() {
   const kind = $('#kind').value
   const sort = activeSort()
   renderCats()
+  renderSetlistsNav()
   renderStats()
   renderRecent()
 
@@ -102,7 +131,7 @@ function render() {
 
   const q = $('#q').value.toLowerCase().trim()
   const med = medleys.filter(m => !q || m.name.toLowerCase().includes(q)).map(m => ({
-    id: m.id, title: m.name, artist: `Medley, ${m.count} songs`, key: '', capo: 0, tags: [],
+    id: m.id, title: m.name, artist: `Medley, ${m.count} songs`, key: '', capo: 0, tags: [], chords: [],
     added: m.created || '', lastOpened: '', medley: true,
   }))
   let rows = [
@@ -116,9 +145,8 @@ function render() {
     const box = s.medley ? '<span></span>' : `<input type="checkbox" class="pick" data-id="${esc(s.id)}" aria-label="Select ${esc(s.title)}"${picked.has(s.id) ? ' checked' : ''}>`
     const acts = s.medley
       ? `<span class="rowacts"><a class="btn" href="/medley?id=${encodeURIComponent(s.id)}" data-needs-net>Edit</a><button type="button" data-del-medley="${esc(s.id)}" data-needs-net>Delete</button></span>`
-      : ''
-    const key = s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''
-    return `<li class="group">${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${key}${songMeta(s)}</a>${acts}</li>`
+      : `<span class="rowacts"><a class="btn" href="${href}">Open</a></span>`
+    return `<li class="group">${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${songMeta(s)}</a>${acts}</li>`
   }).join('')
   $('#empty').hidden = rows.length > 0
   $('#selbar').hidden = picked.size === 0
@@ -133,12 +161,14 @@ async function ensureAllSongs() {
 
 async function load() {
   const q = $('#q').value.trim()
-  const [s, m] = await Promise.all([
+  const [s, m, sl] = await Promise.all([
     api('/api/songs' + (q ? '?q=' + encodeURIComponent(q) : '')),
     api('/api/medleys').catch(() => []),
+    api('/api/setlists').catch(() => []),
   ])
   songs = s
   medleys = m
+  setlists = sl
   if (!q) allSongs = s
   else await ensureAllSongs()
   render()
@@ -159,8 +189,12 @@ $('#tags').onclick = e => {
   if (!b) return
   const next = b.dataset.t
   tag = next === '' ? null : (tag === next ? null : next)
+  setNavOpen(false)
   render()
 }
+$('#nav-toggle')?.addEventListener('click', () => setNavOpen(true))
+$('#nav-close')?.addEventListener('click', () => setNavOpen(false))
+$('#dash-scrim')?.addEventListener('click', () => setNavOpen(false))
 $('#list').onchange = e => { if (!e.target.classList.contains('pick')) return; e.target.checked ? picked.add(e.target.dataset.id) : picked.delete(e.target.dataset.id); render() }
 $('#list').onclick = async e => {
   const btn = e.target.closest('[data-del-medley]')
