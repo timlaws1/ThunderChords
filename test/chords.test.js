@@ -1,101 +1,100 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import http from 'node:http'
-import { transposeChord, transposeLine, transposeText, isChordLine, usesFlats } from '../public/chords.js'
-import { normalize, parseSheet, importFromUrl, assertSafeImportUrl } from '../importer.js'
+import { classify, isChordLine, transposeChord, transposeText } from '../resources/js/chords/chords.js'
+import { sectionsOf, hasMarkers, keyInfo, guessKey, shiftFor, orderByKey, suggestCapo, composeMedley, medleySource } from '../resources/js/chords/music.js'
+import { moveItem } from '../resources/js/chords/reorder.js'
+import { normalize } from '../old_site/importer.js'
 
-process.env.ALLOW_LOCAL_IMPORT = '1'
-
-test('transposeChord', () => {
-  assert.equal(transposeChord('Am7', 2), 'Bm7')
-  assert.equal(transposeChord('D/F#', 2), 'E/G#')
-  assert.equal(transposeChord('Bb', 2, true), 'C')
-  assert.equal(transposeChord('C', 1, true), 'Db')
-  assert.equal(transposeChord('C', -1), 'B')
-  assert.equal(transposeChord('Am', 12), 'Am')
-  assert.equal(transposeChord('Gsus4', 5), 'Csus4')
+test('classify: lone A under a chord line is a lyric, otherwise a chord', () => {
+  assert.deepEqual(classify(['Am F', 'A', 'some lyric']), ['chord', 'lyric', 'lyric'])
+  assert.deepEqual(classify(['A', 'la la la']), ['chord', 'lyric'])
+  assert.deepEqual(classify(['\\A', 'x']), ['lyric', 'lyric'])
 })
 
-test('isChordLine', () => {
-  assert.ok(isChordLine('Am   F   C  G'))
-  assert.ok(isChordLine('C  G  (x2)'))
-  assert.ok(!isChordLine('Well sometimes I go out by myself'))
-  assert.ok(!isChordLine('Am I'))
-  assert.ok(!isChordLine('[Verse 1]'))
-  assert.ok(!isChordLine('e|--0--1--|'))
-  assert.ok(!isChordLine(''))
+test('classify: tunings and tab lines are never chords', () => {
+  assert.deepEqual(classify(['E A D G B E', 'D A D F# A D', 'C G Am F']), ['tuning', 'tuning', 'chord'])
+  assert.deepEqual(classify(['e|--0--1--|', 'B|---3-----|']), ['tab', 'tab'])
+  assert.equal(transposeText('E A D G B E\ne|--0--|\nAm', 2), 'E A D G B E\ne|--0--|\nBm')
 })
 
-test('transposeLine keeps columns', () => {
-  assert.equal(transposeLine('Am        F   C', 2), 'Bm        G   D')
-  assert.equal(transposeLine('Am        F   C', 1), 'A#m' + ' '.repeat(7) + 'F#' + '  ' + 'C#')
-  assert.equal(transposeLine('C Am', 1, true), 'Db Bbm')
+test('chord extensions', () => {
+  assert.ok(isChordLine('Am(add9) C#m7b5 Bm7/E Dsus2 N.C. E5 G6 F#dim7 Cmaj9'))
+  assert.equal(transposeChord('Cmaj9', 2), 'Dmaj9')
+  assert.equal(transposeChord('F#dim7', 1), 'Gdim7')
+  assert.equal(transposeChord('Am(add9)', 2), 'Bm(add9)')
 })
 
-test('transposeText only touches chord lines', () => {
-  assert.equal(transposeText('Am  F\nI am here\n', 2), 'Bm  G\nI am here\n')
+test('import cleanup: sharps and flats symbols, junk lines', () => {
+  assert.equal(normalize('A\u266fm  B\u266d\nAdvertisement\nTranspose\nSome words\n'), 'A#m  Bb\nSome words\n')
 })
 
-test('usesFlats', () => {
-  assert.ok(usesFlats('Bb  F\nla la'))
-  assert.ok(!usesFlats('Am  F\nBb is a word'.replace('Bb is a word', 'la')))
+test('sectionsOf numbers repeated sections', () => {
+  const s = sectionsOf('[Verse 1]\nAm\nla\n\n[Chorus]\nC\nsing\n\n[Chorus]\nC\nagain')
+  assert.deepEqual(s.map(x => x.id), ['Verse 1', 'Chorus', 'Chorus (2)'])
+  assert.equal(s[1].text, '[Chorus]\nC\nsing')
+  assert.ok(hasMarkers('[Intro]\nAm'))
+  assert.ok(!hasMarkers('Am\nla'))
+  assert.deepEqual(sectionsOf('Am\nla').map(x => x.id), ['(start)'])
 })
 
-test('normalize strips markers and keeps alignment', () => {
-  assert.equal(normalize('[tab][ch]Am[/ch]   [ch]F[/ch]\r\nHello[/tab]\n\n\n\nBye  '), 'Am   F\nHello\n\nBye\n')
+test('keys: info, guess, shift', () => {
+  assert.deepEqual(keyInfo('Am'), { root: 9, minor: true })
+  assert.equal(keyInfo('Cmaj7').minor, false)
+  assert.equal(keyInfo('Cm7').minor, true)
+  assert.equal(keyInfo('xyz'), null)
+  assert.deepEqual(guessKey('Am  F\nlyric', ''), { key: 'Am', guessed: true })
+  assert.deepEqual(guessKey('Am  F', 'G'), { key: 'G', guessed: false })
+  assert.equal(shiftFor('Am', 'Em'), -5)
+  assert.equal(shiftFor('G', 'A'), 2)
+  assert.equal(shiftFor('Am', 'C'), 0) // C major target means A minor for a minor song
+  assert.equal(shiftFor('C', 'Am'), 0)
 })
 
-test('normalize lifts inline UG and ChordPro chords', () => {
-  assert.equal(
-    normalize("[ch]Am[/ch]Well it's [ch]F[/ch]ok\n"),
-    "Am        F\nWell it's ok\n",
-  )
-  assert.equal(
-    normalize("[Am]Well it's [F]ok\n"),
-    "Am        F\nWell it's ok\n",
-  )
-  assert.equal(normalize('[Verse 1]\n[Am]hello\n'), '[Verse 1]\nAm\nhello\n')
+test('orderByKey walks the circle of fifths', () => {
+  assert.deepEqual(orderByKey(['C', 'F#', 'G', 'D', 'Am']), [0, 4, 2, 3, 1])
+  assert.deepEqual(orderByKey(['C', null, 'G']), [0, 2, 1])
+  assert.deepEqual(orderByKey([null, null]), [0, 1])
 })
 
-test('parseSheet pulls Key and Capo headers', () => {
-  const s = parseSheet('Key: Am\nCapo: 2\nAm   F\nhello\n')
-  assert.equal(s.key, 'Am')
-  assert.equal(s.capo, 2)
-  assert.equal(s.body, 'Am   F\nhello\n')
+test('suggestCapo finds open shapes', () => {
+  const r = suggestCapo('Bb  Gm  Eb  F\nla la la la')
+  assert.equal(r.current.easy, 0)
+  assert.equal(r.options[0].c, 3)
+  assert.equal(r.options[0].t, 0)
+  assert.equal(r.options[0].easy, 1)
+  assert.deepEqual(r.options[0].chords, ['G', 'Em', 'C', 'D'])
+  assert.equal(suggestCapo('just words').current, null)
 })
 
-test('importFromUrl reads the Ultimate Guitar page data', async () => {
-  const data = { store: { page: { data: {
-    tab: { song_name: "Valerie", artist_name: 'Mark Ronson & Amy' },
-    tab_view: { meta: { tonality: 'Am', capo: 2 }, wiki_tab: { content: '[Verse 1]\n[ch]Am[/ch]   [ch]F[/ch]\nWell it\'s "ok"' } },
-  } } } }
-  const attr = JSON.stringify(data).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')
-  const server = http.createServer((_, res) => res.end(`<html><div class="js-store" data-content="${attr}"></div></html>`))
-  await new Promise(r => server.listen(0, '127.0.0.1', r))
-  try {
-    const s = await importFromUrl(`http://127.0.0.1:${server.address().port}/`)
-    assert.equal(s.title, 'Valerie')
-    assert.equal(s.artist, 'Mark Ronson & Amy')
-    assert.equal(s.key, 'Am')
-    assert.equal(s.capo, 2)
-    assert.equal(s.body, '[Verse 1]\nAm   F\nWell it\'s "ok"\n')
-  } finally { server.close() }
+test('composeMedley picks sections, transposes and adds dividers', () => {
+  const songs = {
+    a: { id: 'a', title: 'One', key: 'Am', capo: 0, body: '[Verse]\nAm  F\nhello\n\n[Chorus]\nC  G\nsing' },
+    b: { id: 'b', title: 'Two', key: 'G', capo: 2, body: 'G  D\nhi' },
+  }
+  const text = composeMedley([
+    { songId: 'a', t: 2, c: 0, sections: ['Chorus'] },
+    { songId: 'b', t: 0, c: 0, sections: null },
+    { songId: 'gone', t: 0, c: 0 },
+  ], songs)
+  assert.equal(text, '=== One, key Bm, +2 ===\n[Chorus]\nD  A\nsing\n\n=== Next: Two, key G, capo 2 ===\nG  D\nhi\n\n=== Song removed ===\n(this song was deleted)')
 })
 
-test('importFromUrl falls back to a <pre> block', async () => {
-  const pre = 'Am       F\nSome lyrics go here for a bit\nC        G\nAnd some more lyrics go here too'
-  const server = http.createServer((_, res) => res.end(`<title>Test Song Chords</title><pre>${pre}</pre>`))
-  await new Promise(r => server.listen(0, '127.0.0.1', r))
-  try {
-    const s = await importFromUrl(`http://127.0.0.1:${server.address().port}/`)
-    assert.equal(s.title, 'Test Song')
-    assert.ok(s.body.startsWith('Am       F\n'))
-  } finally { server.close() }
+test('medley custom body overrides sections; original song untouched', () => {
+  const song = { id: 'a', title: 'One', key: 'C', capo: 0, body: '[Verse]\nC  G\nfull\n\n[Chorus]\nAm  F\nchorus' }
+  const custom = { songId: 'a', t: 0, c: 0, sections: ['Chorus'], body: 'C  G\nshort only\n' }
+  assert.equal(medleySource(custom, song), 'C  G\nshort only')
+  assert.equal(medleySource({ songId: 'a', sections: ['Chorus'] }, song), '[Chorus]\nAm  F\nchorus')
+  assert.match(composeMedley([custom], { a: song }), /short only/)
+  assert.ok(!composeMedley([custom], { a: song }).includes('chorus'))
+  assert.equal(song.body.includes('full'), true)
 })
 
-test('assertSafeImportUrl refuses private addresses', async () => {
-  await assert.rejects(() => assertSafeImportUrl('http://127.0.0.1/', { allowLocal: false }), /cannot be imported/)
-  await assert.rejects(() => assertSafeImportUrl('http://192.168.1.1/', { allowLocal: false }), /cannot be imported/)
-  await assert.rejects(() => assertSafeImportUrl('http://localhost/', { allowLocal: false }), /cannot be imported/)
-  await assert.rejects(() => assertSafeImportUrl('file:///etc/passwd', { allowLocal: false }), /http and https/)
+test('moveItem', () => {
+  assert.deepEqual(moveItem([1, 2, 3], 0, 2), [2, 3, 1])
+  assert.deepEqual(moveItem([1, 2, 3], 2, 1), [1, 3, 2])
+  const a = [1, 2, 3]
+  assert.equal(moveItem(a, 1, 1), a)
+  assert.equal(moveItem(a, 0, -1), a)
+  assert.equal(moveItem(a, 2, 3), a)
 })
+
