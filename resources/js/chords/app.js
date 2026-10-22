@@ -1,8 +1,10 @@
 import { api, esc, store, applyNet, $ } from './api.js'
 import { renderSheet } from './sheet.js'
 
-let songs = [], medleys = [], tag = null
+const UNTAGGED = '__untagged__'
+let allSongs = [], songs = [], medleys = [], tag = null, view = 'all'
 const picked = new Set()
+const importTags = new Set()
 $('#sort').value = store.get('sort') || 'artist'
 $('#kind').value = store.get('kind') || 'all'
 
@@ -15,17 +17,97 @@ const sorters = {
   key: (a, b) => (a.key || '~').localeCompare(b.key || '~') || byTitle(a, b),
 }
 
+function tagCounts() {
+  const counts = new Map()
+  let untagged = 0
+  for (const s of allSongs) {
+    const tags = s.tags || []
+    if (!tags.length) { untagged++; continue }
+    for (const t of tags) counts.set(t, (counts.get(t) || 0) + 1)
+  }
+  return { counts, untagged }
+}
+
+function matchesTag(s) {
+  if (tag == null) return true
+  const tags = s.tags || []
+  if (tag === UNTAGGED) return tags.length === 0
+  return tags.includes(tag)
+}
+
+function activeSort() {
+  if (view === 'added') return 'added'
+  if (view === 'opened') return 'opened'
+  return $('#sort').value
+}
+
+function renderCats() {
+  const { counts, untagged } = tagCounts()
+  const names = [...counts.keys()].sort((a, b) => a.localeCompare(b))
+  if (tag && tag !== UNTAGGED && !counts.has(tag)) tag = null
+  if (tag === UNTAGGED && !untagged) tag = null
+
+  const rows = [
+    `<button type="button" class="cat${tag == null ? ' on' : ''}" data-t="">All <span class="n">${allSongs.length}</span></button>`,
+    ...names.map(t => `<button type="button" class="cat${t === tag ? ' on' : ''}" data-t="${esc(t)}">${esc(t)} <span class="n">${counts.get(t)}</span></button>`),
+  ]
+  if (untagged) {
+    rows.push(`<button type="button" class="cat${tag === UNTAGGED ? ' on' : ''}" data-t="${UNTAGGED}">Untagged <span class="n">${untagged}</span></button>`)
+  }
+  $('#tags').innerHTML = rows.join('')
+}
+
+function renderStats() {
+  const artists = new Set(allSongs.map(s => s.artist).filter(Boolean)).size
+  const cats = tagCounts().counts.size
+  $('#stats').innerHTML = [
+    ['Total songs', allSongs.length],
+    ['Artists', artists],
+    ['Categories', cats],
+    ['Medleys', medleys.length],
+  ].map(([label, n]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`).join('')
+}
+
+function renderRecent() {
+  const recent = [...allSongs]
+    .filter(s => s.lastOpened)
+    .sort(sorters.opened)
+    .slice(0, 6)
+  $('#recent').innerHTML = recent.map(s =>
+    `<li><a href="/song?id=${encodeURIComponent(s.id)}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span></a></li>`
+  ).join('')
+  $('#recent-empty').hidden = recent.length > 0
+}
+
+function songMeta(s) {
+  const bits = []
+  if (s.capo) bits.push(`<span class="capo">Capo ${esc(s.capo)}</span>`)
+  for (const t of (s.tags || [])) bits.push(`<span class="tag">${esc(t)}</span>`)
+  return bits.length ? `<span class="meta-row">${bits.join('')}</span>` : ''
+}
+
 function render() {
-  const kind = $('#kind').value, sort = $('#sort').value
-  const tags = [...new Set(songs.flatMap(s => s.tags))].sort()
-  if (tag && !tags.includes(tag)) tag = null
-  $('#tags').innerHTML = tags.map(t => `<button type="button" class="chip${t === tag ? ' on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')
+  const kind = $('#kind').value
+  const sort = activeSort()
+  renderCats()
+  renderStats()
+  renderRecent()
+
+  for (const b of $('#viewtabs').querySelectorAll('[data-view]')) {
+    const on = b.dataset.view === view
+    b.classList.toggle('on', on)
+    b.setAttribute('aria-selected', on ? 'true' : 'false')
+  }
+  $('#sort').disabled = view !== 'all'
 
   const q = $('#q').value.toLowerCase().trim()
-  const med = medleys.filter(m => !q || m.name.toLowerCase().includes(q)).map(m => ({ id: m.id, title: m.name, artist: `Medley, ${m.count} songs`, key: '', tags: [], added: m.created || '', lastOpened: '', medley: true }))
+  const med = medleys.filter(m => !q || m.name.toLowerCase().includes(q)).map(m => ({
+    id: m.id, title: m.name, artist: `Medley, ${m.count} songs`, key: '', capo: 0, tags: [],
+    added: m.created || '', lastOpened: '', medley: true,
+  }))
   let rows = [
-    ...(kind === 'medley' ? [] : songs.filter(s => !tag || s.tags.includes(tag))),
-    ...(kind === 'song' || tag ? [] : med),
+    ...(kind === 'medley' ? [] : songs.filter(matchesTag)),
+    ...(kind === 'song' || tag != null ? [] : med),
   ].sort(sorters[sort])
 
   $('#list').innerHTML = rows.map(s => {
@@ -35,7 +117,8 @@ function render() {
     const acts = s.medley
       ? `<span class="rowacts"><a class="btn" href="/medley?id=${encodeURIComponent(s.id)}" data-needs-net>Edit</a><button type="button" data-del-medley="${esc(s.id)}" data-needs-net>Delete</button></span>`
       : ''
-    return `<li class="group">${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''}</a>${acts}</li>`
+    const key = s.key ? `<span class="k">${esc(s.key)}</span>` : s.medley ? '<span class="k">Medley</span>' : ''
+    return `<li class="group">${box}<a href="${href}"><span class="t">${esc(s.title)}</span><span class="a">${esc(s.artist)}</span>${date}${key}${songMeta(s)}</a>${acts}</li>`
   }).join('')
   $('#empty').hidden = rows.length > 0
   $('#selbar').hidden = picked.size === 0
@@ -44,12 +127,20 @@ function render() {
   applyNet()
 }
 
+async function ensureAllSongs() {
+  if (!allSongs.length) allSongs = await api('/api/songs')
+}
+
 async function load() {
+  const q = $('#q').value.trim()
   const [s, m] = await Promise.all([
-    api('/api/songs?q=' + encodeURIComponent($('#q').value)),
+    api('/api/songs' + (q ? '?q=' + encodeURIComponent(q) : '')),
     api('/api/medleys').catch(() => []),
   ])
-  songs = s; medleys = m
+  songs = s
+  medleys = m
+  if (!q) allSongs = s
+  else await ensureAllSongs()
   render()
 }
 
@@ -57,7 +148,19 @@ let t
 $('#q').oninput = () => { clearTimeout(t); t = setTimeout(load, 200) }
 $('#sort').onchange = () => { store.set('sort', $('#sort').value); render() }
 $('#kind').onchange = () => { store.set('kind', $('#kind').value); render() }
-$('#tags').onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; tag = tag === b.dataset.t ? null : b.dataset.t; render() }
+$('#viewtabs').onclick = e => {
+  const b = e.target.closest('[data-view]')
+  if (!b) return
+  view = b.dataset.view
+  render()
+}
+$('#tags').onclick = e => {
+  const b = e.target.closest('[data-t]')
+  if (!b) return
+  const next = b.dataset.t
+  tag = next === '' ? null : (tag === next ? null : next)
+  render()
+}
 $('#list').onchange = e => { if (!e.target.classList.contains('pick')) return; e.target.checked ? picked.add(e.target.dataset.id) : picked.delete(e.target.dataset.id); render() }
 $('#list').onclick = async e => {
   const btn = e.target.closest('[data-del-medley]')
@@ -97,6 +200,8 @@ function showStep(step) {
 
 function resetDialog() {
   preview = null
+  importTags.clear()
+  $('#ftags').value = ''
   showStep('input')
   setMode('link')
   $('#dupnote').hidden = true
@@ -105,6 +210,7 @@ function resetDialog() {
   $('#doSave').disabled = false
   $('#fkeyhint').hidden = true
   $('#sheetprev').innerHTML = ''
+  $('#ftags-chips').innerHTML = ''
   $('#err').textContent = ''
 }
 
@@ -124,8 +230,31 @@ function syncDupActions() {
   $('#doOpen').classList.toggle('primary', same)
 }
 
+function knownTags() {
+  return [...new Set(allSongs.flatMap(s => s.tags || []))].sort((a, b) => a.localeCompare(b))
+}
+
+function renderImportTags() {
+  const known = knownTags()
+  const extra = [...importTags].filter(t => !known.includes(t)).sort((a, b) => a.localeCompare(b))
+  $('#ftags-chips').innerHTML = [...known, ...extra].map(t =>
+    `<button type="button" class="chip${importTags.has(t) ? ' on' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`
+  ).join('')
+}
+
+function parseTagInput(raw) {
+  return String(raw || '').split(',').map(t => t.trim()).filter(Boolean)
+}
+
+function collectImportTags() {
+  const tags = new Set(importTags)
+  for (const t of parseTagInput($('#ftags').value)) tags.add(t)
+  return [...tags]
+}
+
 function showPreview(d) {
   preview = d
+  importTags.clear()
   $('#ftitle').value = d.title || ''
   $('#fartist').value = d.artist || ''
   $('#fkey').value = d.key || ''
@@ -133,12 +262,22 @@ function showPreview(d) {
   $('#fkeyhint').hidden = !d.keyGuessed
   $('#fsource').value = d.source || ''
   $('#fsourcewrap').hidden = !d.source && !d.duplicateId
+  $('#ftags').value = ''
   $('#sheetprev').innerHTML = `<div class="sheet">${renderSheet(d.body)}</div>`
+  renderImportTags()
   syncDupActions()
   showStep('preview')
   ;(d.duplicateId ? $('#doOpen') : $('#ftitle')).focus()
 }
 $('#fsource').oninput = syncDupActions
+$('#ftags-chips').onclick = e => {
+  const b = e.target.closest('[data-tag]')
+  if (!b) return
+  const t = b.dataset.tag
+  if (importTags.has(t)) importTags.delete(t)
+  else importTags.add(t)
+  renderImportTags()
+}
 
 async function runBusy(btn, label, fn) {
   if (busy) return
@@ -158,7 +297,9 @@ async function runBusy(btn, label, fn) {
   }
 }
 
-$('#add').onclick = () => { resetDialog(); dlg.showModal(); $('#url').focus() }
+function openAdd() { resetDialog(); dlg.showModal(); $('#url').focus() }
+$('#add').onclick = openAdd
+$('#add2').onclick = openAdd
 $('#close').onclick = () => dlg.close()
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close() })
 dlg.querySelector('.modes').onclick = e => {
@@ -171,6 +312,7 @@ $('#addform').onsubmit = async e => {
   e.preventDefault()
   if ($('#step-preview').hidden) {
     await runBusy($('#doPreview'), 'Working...', async () => {
+      await ensureAllSongs()
       const body = mode === 'link'
         ? { url: $('#url').value.trim() }
         : { text: $('#text').value, title: $('#ptitle').value, artist: $('#partist').value }
@@ -194,6 +336,7 @@ $('#addform').onsubmit = async e => {
         body: {
           title, artist: $('#fartist').value,
           key: $('#fkey').value, capo: $('#fcapo').value,
+          tags: collectImportTags().join(', '),
           body: preview.body, source, text: mode === 'paste' ? $('#text').value : undefined,
         },
       })

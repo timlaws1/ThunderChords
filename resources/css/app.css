@@ -100,6 +100,7 @@ a { color: inherit; text-decoration: none; }
   input[type=checkbox] { width: 1.1rem; height: 1.1rem; padding: 0; }
 
   .filters { @apply flex flex-wrap items-center gap-x-4 gap-y-2 py-1 pb-3; }
+  .viewtabs { @apply flex flex-wrap gap-1.5; }
   .tags { @apply flex flex-wrap gap-1.5; }
   .chip {
     @apply rounded-lg px-3 py-1 text-[0.9rem];
@@ -112,6 +113,119 @@ a { color: inherit; text-decoration: none; }
     color: #12171f;
   }
   .mode.on { color: #12171f; }
+
+  /* Library dashboard */
+  .dash {
+    display: grid;
+    grid-template-columns: 15.5rem minmax(0, 1fr) 15rem;
+    min-height: 100vh;
+    align-items: start;
+  }
+  .dash-side {
+    @apply sticky top-0 flex max-h-screen flex-col gap-4 overflow-y-auto p-4;
+    border-right: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg2) 85%, var(--panel));
+  }
+  .dash-brand .brand { @apply text-[1.35rem]; }
+  .dash-nav { @apply flex flex-col gap-1; }
+  .dash-link {
+    @apply rounded-lg px-3 py-2 text-left text-[0.95rem] font-medium;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  a.dash-link { display: block; }
+  button.dash-link { width: 100%; cursor: pointer; }
+  .dash-link:hover, .dash-link:focus-visible { background: var(--panel); }
+  .dash-link.on {
+    background: var(--chord);
+    color: #12171f;
+    border-color: transparent;
+  }
+  .dash-h {
+    @apply m-0 mb-2 text-[0.75rem] font-semibold uppercase tracking-wider;
+    color: var(--mute);
+  }
+  .catlist { @apply flex flex-col gap-0.5; }
+  .cat {
+    @apply flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[0.9rem];
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+  }
+  .cat:hover, .cat:focus-visible { background: var(--panel); }
+  .cat.on {
+    background: var(--panel);
+    border-color: var(--line);
+    font-weight: 600;
+  }
+  .cat .n {
+    @apply tabular-nums text-[0.8rem];
+    color: var(--mute);
+  }
+  .dash-main { @apply min-w-0; }
+  .dash-top {
+    @apply sticky top-0 z-10 flex flex-wrap items-center gap-3 px-5 py-3.5;
+    background: color-mix(in srgb, var(--panel) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .dash-search { @apply min-w-0 flex-1; }
+  .dash-content { @apply px-5 pb-20 pt-4; }
+  .dash-heading { @apply mb-3; }
+  .dash-heading h1 { @apply m-0 text-[1.6rem] font-bold; }
+  .stats {
+    @apply mb-4 grid gap-2;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  }
+  .stat {
+    @apply rounded-[10px] px-3 py-2.5;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .stat b {
+    @apply block font-brand text-[1.35rem] font-bold tabular-nums leading-tight;
+  }
+  .stat span { @apply text-[0.85rem]; color: var(--mute); }
+  .songlist li > a {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+  }
+  .songlist .meta-row {
+    @apply flex flex-wrap items-center gap-1.5;
+    grid-column: 1 / -1;
+  }
+  .songlist .tag {
+    @apply rounded px-1.5 py-0.5 text-[0.75rem];
+    border: 1px solid var(--line);
+    color: var(--mute);
+    background: var(--bg);
+  }
+  .songlist .capo {
+    @apply text-[0.8rem] tabular-nums;
+    color: var(--mute);
+  }
+  .dash-rail {
+    @apply sticky top-0 flex max-h-screen flex-col gap-4 overflow-y-auto p-4;
+    border-left: 1px solid var(--line);
+  }
+  .rail-card {
+    @apply grid gap-2 rounded-[10px] p-3;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .rail-btn { @apply w-full text-center; }
+  .recent { @apply m-0 grid list-none gap-1 p-0; }
+  .recent a {
+    @apply block rounded-lg px-2 py-1.5 text-[0.9rem] transition-colors;
+  }
+  .recent a:hover, .recent a:focus-visible { background: var(--bg); }
+  .recent .t { @apply block font-semibold; }
+  .recent .a { @apply block text-[0.8rem]; color: var(--mute); }
+  .tagpick { @apply grid gap-1.5; }
+  .tagpick-label { @apply text-[0.9rem]; color: var(--mute); }
+  .tagpick .chip { cursor: pointer; }
 
   .list { @apply m-0 list-none p-0; }
   .list li {
@@ -270,6 +384,36 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 700px) {
   .bar .ttl { flex: 1 1 100%; order: 3; }
   .bar input.ttl { order: 3; flex: 1 1 100%; }
+}
+
+@media (max-width: 1100px) {
+  .dash { grid-template-columns: 14rem minmax(0, 1fr); }
+  .dash-rail {
+    grid-column: 1 / -1;
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .dash-rail .rail-card { flex: 1 1 16rem; }
+}
+
+@media (max-width: 800px) {
+  .dash { grid-template-columns: 1fr; }
+  .dash-side {
+    position: static;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .dash-nav { @apply flex-row flex-wrap; }
+  button.dash-link, a.dash-link { width: auto; }
+  .catlist {
+    @apply flex-row flex-wrap;
+  }
+  .cat { width: auto; }
 }
 
 /* Chord sheet rendering — kept as real CSS (generated markup + print/PDF) */

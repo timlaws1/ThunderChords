@@ -34,6 +34,24 @@ class SongApiTest extends TestCase
             ->getJson('/api/songs')
             ->assertOk()
             ->assertJsonFragment(['title' => 'Hello', 'artist' => 'Band']);
+
+        $this->assertSame([], $user->songs()->first()->tags);
+    }
+
+    public function test_import_stores_tags(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/api/songs/import', [
+                'title' => 'Tagged',
+                'artist' => 'Band',
+                'body' => "C\nla\n",
+                'tags' => 'pop, acoustic',
+            ])
+            ->assertOk();
+
+        $this->assertSame(['pop', 'acoustic'], $user->songs()->first()->tags);
     }
 
     public function test_duplicate_source_url_returns_existing_id(): void

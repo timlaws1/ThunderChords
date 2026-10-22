@@ -164,13 +164,16 @@ class SongController extends Controller
                 throw new RuntimeException('No title found. Add a title and try again.');
             }
 
+            $tags = is_array($b['tags'] ?? null) ? $b['tags'] : explode(',', (string) ($b['tags'] ?? ''));
+            $tags = array_values(array_filter(array_map(fn ($t) => $this->lib->one($t), $tags)));
+
             $song = $user->songs()->create([
                 'slug' => $this->lib->songSlugFor($user, $this->lib->one($d['artist'] ?? ''), $this->lib->one($d['title'])),
                 'title' => $this->lib->one($d['title']),
                 'artist' => $this->lib->one($d['artist'] ?? ''),
                 'key' => $this->lib->one($d['key'] ?? ''),
                 'capo' => (int) ($d['capo'] ?? 0),
-                'tags' => [],
+                'tags' => $tags,
                 'source' => $d['source'] ?? '',
                 'added' => Carbon::now()->toDateString(),
                 'body' => $d['body'],
