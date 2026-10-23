@@ -61,9 +61,31 @@ export function mountViewer() {
     requestAnimationFrame(() => { fit(); goPage(page) })
   }
 
+  // Shrink preferred size so monospace lines fit the viewport (keeps chord/lyric alignment).
+  function fitWidth() {
+    const root = document.documentElement
+    let size = P.size
+    root.style.setProperty('--fs', size + 'px')
+    const avail = sheet.clientWidth
+    if (avail <= 0 || sheet.scrollWidth <= avail) return
+    size = Math.max(10, Math.floor(size * avail / sheet.scrollWidth))
+    root.style.setProperty('--fs', size + 'px')
+    while (sheet.scrollWidth > sheet.clientWidth && size > 10) {
+      size -= 1
+      root.style.setProperty('--fs', size + 'px')
+    }
+  }
+
   // Two-column mode: fixed height, sideways pages of two columns each.
+  // Single-column: scale --fs down when the sheet would otherwise need horizontal scroll.
   function fit() {
-    if (!colsOn()) { sheet.style.height = ''; sheet.scrollLeft = 0; pages = 1; return }
+    if (!colsOn()) {
+      sheet.style.height = ''
+      sheet.scrollLeft = 0
+      pages = 1
+      fitWidth()
+      return
+    }
     sheet.style.height = Math.max(240, innerHeight - (sheet.getBoundingClientRect().top + scrollY) - 16) + 'px'
     pages = Math.max(1, Math.ceil((sheet.scrollWidth + gap()) / (sheet.clientWidth + gap()) - 0.01))
   }
