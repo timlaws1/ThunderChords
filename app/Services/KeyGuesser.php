@@ -84,6 +84,32 @@ class KeyGuesser
     }
 
     /**
+     * Distance on the circle of fifths, from 0 to 6. Relative major and minor share a position.
+     */
+    public function fifthsDistance(string $from, string $to): ?int
+    {
+        $a = $this->fifthsPosition($from);
+        $b = $this->fifthsPosition($to);
+        if ($a === null || $b === null) {
+            return null;
+        }
+        $delta = abs($a - $b);
+
+        return min($delta, 12 - $delta);
+    }
+
+    private function fifthsPosition(string $key): ?int
+    {
+        $info = $this->keyInfo($key);
+        if ($info === null) {
+            return null;
+        }
+        $root = $info['minor'] ? ($info['root'] + 3) % 12 : $info['root'];
+
+        return ($root * 7) % 12;
+    }
+
+    /**
      * @return list<string>
      */
     public function chordsIn(string $text): array

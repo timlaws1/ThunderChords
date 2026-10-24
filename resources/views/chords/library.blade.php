@@ -47,7 +47,9 @@
     <p id="empty" class="muted" hidden style="padding: 16px">Nothing here yet. Choose Add Song and paste a link.</p>
     <div class="library-foot foot">
       <button id="offline-save" class="btn">Save for offline</button>
+      <button id="tag-untagged" class="btn" data-needs-net hidden>Tag untagged</button>
       <span id="offline-msg" class="muted"></span>
+      <span id="tag-msg" class="muted"></span>
     </div>
   </section>
 
@@ -116,6 +118,7 @@
       <div class="tagpick">
         <span class="tagpick-label">Categories</span>
         <div id="ftags-chips" class="tags"></div>
+        <p id="ftags-note" class="muted" hidden></p>
         <input id="ftags" type="text" placeholder="Add new (comma separated)" autocomplete="off">
       </div>
       <label id="fsourcewrap" class="field" hidden>Source <input id="fsource" type="url" autocomplete="off"></label>

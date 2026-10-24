@@ -34,6 +34,8 @@ Open http://127.0.0.1:8000
 | `INVITE_CODE` | When set, `/register` accepts new accounts with this code. Empty closes signup. |
 | `ALLOW_LOCAL_IMPORT` | Set `true` only in tests to allow importing from localhost/private URLs |
 | `SESSION_LIFETIME` | Defaults to a long-lived session (minutes) |
+| `LASTFM_API_KEY` | Optional. Last.fm similar tracks ("often played with") when building a medley |
+| `MUSICBRAINZ_USER_AGENT` | Contact User-Agent for MusicBrainz genre lookups. Defaults to the app name and `APP_URL` |
 
 Create the first account via `/register` when `INVITE_CODE` is set, or `php artisan tinker` / a seeder.
 
@@ -61,6 +63,8 @@ npm run test:js      # Chord/music unit tests (Node)
 - Transpose, capo, sharps/flats, easier-chords suggestions
 - Autoscroll, text size, two-column paging, PDF via print
 - Setlists with per-item transpose/capo; medleys with sections and key matching
+- Genre tags from MusicBrainz and the iTunes catalogue (no key). Optional Last.fm key for similar tracks
+- Medley builder suggests library songs after you add one ("How about adding these tracks?")
 - Share links (7d / 30d / never) without login
 - Offline: install as PWA, “Save for offline” on the library page
 - Dark / light theme

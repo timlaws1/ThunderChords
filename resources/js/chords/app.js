@@ -154,6 +154,8 @@ function render() {
     return `<li class="group">${box}<a class="song-row" href="${href}"><div class="song-info"><span class="cover ${tone}" aria-hidden="true">${mark}</span><div class="song-text"><span class="song-title t">${esc(s.title)}</span><div class="artist a">${esc(s.artist)}</div></div></div>${key ? `<span class="key key-pill">${key}</span>` : '<span></span>'}${chords.length ? `<div class="chords chords-row">${chords.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : '<span></span>'}</a>${acts}</li>`
   }).join('')
   $('#empty').hidden = rows.length > 0
+  const tagBtn = $('#tag-untagged')
+  if (tagBtn) tagBtn.hidden = tagCounts().untagged === 0
   $('#selbar').hidden = picked.size === 0
   $('#selcount').textContent = `${picked.size} selected`
   $('#mk').disabled = picked.size < 2
@@ -211,10 +213,27 @@ $('#list').onclick = async e => {
   } catch (err) { alert(err.message) }
 }
 $('#selclear').onclick = () => { picked.clear(); render() }
+$('#tag-untagged').onclick = async () => {
+  const btn = $('#tag-untagged')
+  const msg = $('#tag-msg')
+  if (!confirm('Look up genres for songs that have no category?')) return
+  btn.disabled = true
+  const prev = btn.textContent
+  btn.textContent = 'Tagging…'
+  msg.textContent = ''
+  try {
+    const r = await api('/api/songs/autotag', { method: 'POST' })
+    await load()
+    if (!r.tagged) msg.textContent = 'No genres found. Add tags by hand, or try again later.'
+    else if (r.remaining > 0) msg.textContent = `Tagged ${r.tagged}. ${r.remaining} still untagged — run it again.`
+    else msg.textContent = `Tagged ${r.tagged}.`
+  } catch (e) { alert(e.message) }
+  finally { btn.disabled = false; btn.textContent = prev }
+}
 $('#mk').onclick = () => { location = '/medley?songs=' + [...picked].map(encodeURIComponent).join(',') }
 
 // ---- add song ----
-let mode = 'link', preview = null, busy = false
+let mode = 'link', preview = null, busy = false, tagsReady = false
 const dlg = $('#dlg')
 
 function setMode(m) {
@@ -247,6 +266,9 @@ function resetDialog() {
   $('#fkeyhint').hidden = true
   $('#sheetprev').innerHTML = ''
   $('#ftags-chips').innerHTML = ''
+  $('#ftags-note').hidden = true
+  $('#ftags-note').textContent = ''
+  tagsReady = false
   $('#err').textContent = ''
 }
 
@@ -303,7 +325,34 @@ function showPreview(d) {
   renderImportTags()
   syncDupActions()
   showStep('preview')
+  tagsReady = false
+  $('#ftags-note').hidden = false
+  $('#ftags-note').textContent = 'Looking up genre…'
+  loadSuggestedTags(d)
   ;(d.duplicateId ? $('#doOpen') : $('#ftitle')).focus()
+}
+
+async function loadSuggestedTags(d) {
+  const title = (d.title || '').trim()
+  if (!title) {
+    if (preview === d) { tagsReady = true; $('#ftags-note').hidden = true }
+    return
+  }
+  try {
+    const r = await api('/api/songs/tags', { method: 'POST', body: { title, artist: d.artist || '' } })
+    if ($('#step-preview').hidden || preview !== d) return
+    const tags = r.tags || []
+    for (const t of tags) importTags.add(t)
+    renderImportTags()
+    $('#ftags-note').hidden = false
+    $('#ftags-note').textContent = tags.length
+      ? 'Suggested genres are ticked. Untick any you don\'t want.'
+      : 'No genre found for this song. Add your own categories below.'
+  } catch {
+    if (preview === d) $('#ftags-note').hidden = true
+  } finally {
+    if (preview === d) tagsReady = true
+  }
 }
 $('#fsource').oninput = syncDupActions
 $('#ftags-chips').onclick = e => {
@@ -373,6 +422,7 @@ $('#addform').onsubmit = async e => {
           title, artist: $('#fartist').value,
           key: $('#fkey').value, capo: $('#fcapo').value,
           tags: collectImportTags().join(', '),
+          autotag: !tagsReady && collectImportTags().length === 0,
           body: preview.body, source, text: mode === 'paste' ? $('#text').value : undefined,
         },
       })
