@@ -55,7 +55,8 @@ export function mountViewer() {
     if (doc.transposable) {
       const key = doc.key && transposeChord(doc.key, P.t, P.flats)
       const capo = (doc.capo || 0) + P.c
-      $('#meta').textContent = [key && `Key ${key}`, capo && `capo ${capo}`].filter(Boolean).join(', ')
+      const tags = (doc.tags || []).filter(Boolean).join(', ')
+      $('#meta').textContent = [key && `Key ${key}`, capo && `capo ${capo}`, tags].filter(Boolean).join(' · ')
     } else $('#meta').textContent = doc.meta || ''
     controls()
     requestAnimationFrame(() => { fit(); goPage(page) })

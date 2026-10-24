@@ -9,9 +9,11 @@ use App\Services\KeyGuesser;
 use App\Services\LibraryService;
 use App\Services\SheetParser;
 use App\Services\SongImporter;
+use App\Services\SongTagger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class SongController extends Controller
@@ -21,6 +23,7 @@ class SongController extends Controller
         private SongImporter $importer,
         private SheetParser $parser,
         private KeyGuesser $keys,
+        private SongTagger $tagger,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -166,6 +169,12 @@ class SongController extends Controller
 
             $tags = is_array($b['tags'] ?? null) ? $b['tags'] : explode(',', (string) ($b['tags'] ?? ''));
             $tags = array_values(array_filter(array_map(fn ($t) => $this->lib->one($t), $tags)));
+            if ($tags === [] && $request->boolean('autotag')) {
+                $tags = $this->tagger->suggest(
+                    $this->lib->one($d['artist'] ?? ''),
+                    $this->lib->one($d['title']),
+                );
+            }
 
             $song = $user->songs()->create([
                 'slug' => $this->lib->songSlugFor($user, $this->lib->one($d['artist'] ?? ''), $this->lib->one($d['title'])),
@@ -249,6 +258,56 @@ class SongController extends Controller
         $song->save();
 
         return response()->json($song->toApiArray());
+    }
+
+    public function suggestTags(Request $request): JsonResponse
+    {
+        $title = $this->lib->one($request->input('title'));
+        if ($title === '') {
+            return response()->json(['error' => 'Add a title first.'], 400);
+        }
+
+        return response()->json([
+            'tags' => $this->tagger->suggest($this->lib->one($request->input('artist')), $title),
+        ]);
+    }
+
+    public function autotag(Request $request, string $id): JsonResponse
+    {
+        $song = $request->user()->songs()->where('slug', $id)->first();
+        if (! $song) {
+            return response()->json(['error' => 'Song not found'], 404);
+        }
+        $before = array_map(fn (mixed $tag): string => Str::lower(trim((string) $tag)), $song->tags ?? []);
+        $song = $this->tagger->apply($song);
+        $added = array_values(array_filter(
+            $song->tags ?? [],
+            fn (string $tag): bool => ! in_array(Str::lower($tag), $before, true),
+        ));
+
+        return response()->json([
+            ...$song->toApiArray(),
+            'tagsAdded' => $added,
+        ]);
+    }
+
+    public function autotagMissing(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $pending = $user->songs()->untagged()->orderBy('id')->limit(5)->get();
+        $tagged = 0;
+        foreach ($pending as $song) {
+            $before = $song->tags ?? [];
+            $this->tagger->apply($song);
+            if (($song->tags ?? []) !== $before) {
+                $tagged++;
+            }
+        }
+
+        return response()->json([
+            'tagged' => $tagged,
+            'remaining' => $user->songs()->untagged()->count(),
+        ]);
     }
 
     public function destroy(Request $request, string $id): JsonResponse

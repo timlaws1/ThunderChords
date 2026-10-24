@@ -30,6 +30,12 @@
     <p id="empty" class="muted" hidden>No songs yet. Search below to add some.</p>
   </section>
 
+  <section id="suggest" class="page-card" hidden>
+    <h2 class="rail-h" style="margin-bottom:6px">How about adding these tracks?</h2>
+    <p class="muted text-sm">From your library, based on genre, artist, and key.</p>
+    <ul id="suggest-list" class="list"></ul>
+  </section>
+
   <section class="page-card">
     <h2 class="rail-h" style="margin-bottom:10px">Add songs</h2>
     <input id="sq" type="search" placeholder="Search your library" autocomplete="off" style="width:100%">
