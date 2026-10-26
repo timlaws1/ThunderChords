@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Services\KeyGuesser;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,6 +58,17 @@ class Song extends Model
     public function ownerSongOpen(): HasOne
     {
         return $this->hasOne(SongOpen::class);
+    }
+
+    /**
+     * Songs with no categories yet.
+     */
+    #[Scope]
+    protected function untagged(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->whereNull('tags')->orWhereJsonLength('tags', 0);
+        });
     }
 
     /**

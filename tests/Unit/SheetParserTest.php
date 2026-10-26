@@ -19,6 +19,18 @@ class SheetParserTest extends TestCase
     {
         $keys = new KeyGuesser;
         $this->assertSame(['key' => 'Am', 'guessed' => true], $keys->guessKey("Am  F\nlyric", ''));
-        $this->assertSame(['key' => 'G', 'guessed' => false], $keys->guessKey("Am  F", 'G'));
+        $this->assertSame(['key' => 'G', 'guessed' => false], $keys->guessKey('Am  F', 'G'));
+    }
+
+    public function test_fifths_distance_uses_the_circle_of_fifths(): void
+    {
+        $keys = new KeyGuesser;
+
+        $this->assertSame(0, $keys->fifthsDistance('G', 'G'));
+        $this->assertSame(1, $keys->fifthsDistance('C', 'G'));
+        $this->assertSame(0, $keys->fifthsDistance('Am', 'C'));
+        $this->assertSame(6, $keys->fifthsDistance('C', 'F#'));
+        $this->assertNull($keys->fifthsDistance('', 'G'));
+        $this->assertNull($keys->fifthsDistance('not a key', 'G'));
     }
 }

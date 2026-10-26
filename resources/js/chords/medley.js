@@ -58,6 +58,7 @@ $('#items').addEventListener('click', e => {
   if (a === 'rm') items.splice(i, 1)
   else if (a[0] === 't') it.t = Math.min(11, Math.max(-11, it.t + (a[1] === '+' ? 1 : -1)))
   else it.c = Math.min(11, Math.max(0, it.c + (a[1] === '+' ? 1 : -1)))
+  if (a === 'rm') refreshSuggestions()
   render()
 })
 $('#items').addEventListener('change', e => {
@@ -122,7 +123,33 @@ $('#order').onclick = () => {
   render()
 }
 
-let st
+let st, suggestGen = 0, tkeyTimer
+async function addSong(sid) {
+  if (!sid) return
+  if (items.some(i => i.songId === sid)) return status('Already in list')
+  songs[sid] ||= await api('/api/songs/' + encodeURIComponent(sid))
+  items.push({ songId: sid, t: 0, c: 0, sections: null })
+  render()
+  status(id ? `Added ${songs[sid].title}.` : 'Not saved yet — name it and Save before Play.')
+  refreshSuggestions()
+  $('#items').scrollIntoView({ block: 'nearest' })
+}
+async function refreshSuggestions() {
+  const ids = items.map(it => it.songId).filter(Boolean)
+  const gen = ++suggestGen
+  if (!ids.length) { $('#suggest').hidden = true; return }
+  try {
+    const r = await api('/api/medleys/suggestions', { method: 'POST', body: { songs: ids, targetKey: $('#tkey').value.trim() } })
+    if (gen !== suggestGen) return
+    const list = r.suggestions || []
+    $('#suggest').hidden = list.length === 0
+    $('#suggest-list').innerHTML = list.map(s => `<li><span class="meta"><b>${esc(s.title)}</b> <span class="muted">${esc(s.artist)}</span><span class="suggest-why">${esc(s.reason)}</span></span><button class="btn" data-add="${esc(s.id)}" data-needs-net>Add</button></li>`).join('')
+    applyNet()
+  } catch {
+    if (gen === suggestGen) $('#suggest').hidden = true
+  }
+}
+$('#tkey').oninput = () => { clearTimeout(tkeyTimer); tkeyTimer = setTimeout(() => { if (items.length) refreshSuggestions() }, 300) }
 $('#sq').oninput = () => {
   clearTimeout(st)
   st = setTimeout(async () => {
@@ -133,16 +160,8 @@ $('#sq').oninput = () => {
     applyNet()
   }, 200)
 }
-$('#results').onclick = async e => {
-  const sid = e.target.dataset.add
-  if (!sid) return
-  if (items.some(i => i.songId === sid)) return status('Already in list')
-  songs[sid] ||= await api('/api/songs/' + encodeURIComponent(sid))
-  items.push({ songId: sid, t: 0, c: 0, sections: null })
-  render()
-  status(id ? `Added ${songs[sid].title}.` : 'Not saved yet — name it and Save before Play.')
-  $('#items').scrollIntoView({ block: 'nearest' })
-}
+$('#results').onclick = e => { const sid = e.target.dataset.add; if (sid) addSong(sid) }
+$('#suggest-list').onclick = e => { const sid = e.target.dataset.add; if (sid) addSong(sid) }
 
 $('#save').onclick = async () => {
   const name = $('#name').value.trim()
@@ -170,5 +189,6 @@ try {
     }
   }
   render()
+  if (items.length) refreshSuggestions()
 } catch (e) { document.body.innerHTML = `<p style="padding:2rem">${esc(e.message)} <a href="/">Back to the library</a></p>` }
 applyNet()

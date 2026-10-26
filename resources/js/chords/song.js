@@ -42,7 +42,7 @@ function localPrefs(key, { force = null } = {}) {
 }
 const prefsFor = (key, opts) => (token ? localPrefs(token + ':' + key, opts) : serverPrefs(key, opts))
 
-const songDoc = s => ({ title: s.title, artist: s.artist, key: s.key, capo: s.capo, body: s.body, transposable: true })
+const songDoc = s => ({ title: s.title, artist: s.artist, key: s.key, capo: s.capo, body: s.body, tags: s.tags || [], transposable: true })
 const removedDoc = { title: 'Song removed', body: '(this song was deleted)', transposable: false, text: '(this song was deleted)' }
 
 function fail(msg) {
@@ -134,7 +134,7 @@ $('#sheet').addEventListener('touchend', e => {
 
 // ---- song management (not shown on shared pages) ----
 function manageSong() {
-  for (const b of ['#addset', '#share', '#edit']) $(b).hidden = false
+  for (const b of ['#addset', '#share', '#edit', '#autotag']) $(b).hidden = false
   $('#reimport').hidden = !song.source
   const ed = $('#editor')
   const view = on => { for (const sel of ['#sheet', '#tools', '#meta']) $(sel).hidden = !on; ed.hidden = on }
@@ -143,14 +143,43 @@ function manageSong() {
     viewer.stop()
     $('#f-title').value = song.title; $('#f-artist').value = song.artist; $('#f-key').value = song.key
     $('#f-capo').value = song.capo || ''; $('#f-tags').value = song.tags?.join(', ') || ''; $('#f-body').value = song.body
+    $('#autotag').hidden = true
     view(false)
   }
-  $('#cancel').onclick = () => view(true)
+  $('#cancel').onclick = () => { $('#autotag').hidden = false; view(true) }
+  $('#autotag').onclick = async () => {
+    const btn = $('#autotag')
+    btn.disabled = true
+    try {
+      const saved = await api('/api/songs/' + encodeURIComponent(song.id) + '/autotag', { method: 'POST' })
+      song = saved
+      await viewer.load(songDoc(song), prefsFor('song:' + song.id))
+      if (!saved.tagsAdded?.length) alert(song.tags?.length ? 'No new tags found.' : 'No genre tags found for this song.')
+    } catch (e) { alert(e.message) }
+    finally { btn.disabled = false }
+  }
+  $('#suggest-tags').onclick = async () => {
+    const btn = $('#suggest-tags')
+    btn.disabled = true
+    try {
+      const r = await api('/api/songs/tags', { method: 'POST', body: { title: $('#f-title').value, artist: $('#f-artist').value } })
+      const tags = ($('#f-tags').value || '').split(',').map(t => t.trim()).filter(Boolean)
+      const seen = new Set(tags.map(t => t.toLowerCase()))
+      const before = tags.length
+      for (const t of r.tags || []) {
+        if (!seen.has(String(t).toLowerCase())) { tags.push(t); seen.add(String(t).toLowerCase()) }
+      }
+      $('#f-tags').value = tags.join(', ')
+      if (tags.length === before) alert((r.tags || []).length ? 'Those tags are already in the list.' : 'No genre tags found for this song.')
+    } catch (e) { alert(e.message) }
+    finally { btn.disabled = false }
+  }
   ed.onsubmit = async e => {
     e.preventDefault()
     try {
       const saved = await api('/api/songs/' + encodeURIComponent(song.id), { method: 'PUT', body: { title: $('#f-title').value, artist: $('#f-artist').value, key: $('#f-key').value, capo: $('#f-capo').value, tags: $('#f-tags').value, body: $('#f-body').value } })
       song = saved
+      $('#autotag').hidden = false
       view(true)
       await viewer.load(songDoc(song), prefsFor('song:' + song.id))
     } catch (x) { alert(x.message) }

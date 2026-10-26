@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'musicbrainz' => [
+        'base_url' => 'https://musicbrainz.org/ws/2',
+        'user_agent' => env('MUSICBRAINZ_USER_AGENT', 'ThunderChords/1.0 ('.env('APP_URL', 'http://localhost').')'),
+    ],
+
+    'itunes' => [
+        'base_url' => 'https://itunes.apple.com',
+    ],
+
+    'lastfm' => [
+        'key' => env('LASTFM_API_KEY'),
+        'base_url' => 'https://ws.audioscrobbler.com/2.0/',
+    ],
+
 ];

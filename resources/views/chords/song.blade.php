@@ -16,6 +16,7 @@
       <button id="addset" class="btn" data-mgmt data-needs-net hidden>Add to setlist</button>
       <button id="share" class="btn" data-mgmt data-needs-net hidden>Share</button>
       <button id="reimport" class="btn" data-mgmt data-needs-net hidden>Re-import</button>
+      <button id="autotag" class="btn" data-mgmt data-needs-net hidden>Suggest tags</button>
       <button id="edit" class="btn" data-mgmt data-needs-net hidden>Edit</button>
     </div>
   </div>
@@ -32,6 +33,7 @@
     <form id="editor" hidden>
       <div class="row"><input id="f-title" placeholder="Title" required><input id="f-artist" placeholder="Artist"></div>
       <div class="row"><input id="f-key" placeholder="Key (e.g. Am)"><input id="f-capo" type="number" min="0" max="12" placeholder="Capo"><input id="f-tags" placeholder="Tags, comma separated"></div>
+      <div class="row"><button type="button" id="suggest-tags" class="btn">Suggest tags</button></div>
       <textarea id="f-body" spellcheck="false"></textarea>
       <div class="row"><button class="primary">Save changes</button><button type="button" id="cancel" class="btn">Cancel</button><button type="button" id="del" class="danger btn">Delete song</button></div>
     </form>
@@ -46,6 +48,7 @@
     <button id="addset" class="btn" data-mgmt data-needs-net hidden>Add to setlist</button>
     <button id="share" class="btn" data-mgmt data-needs-net hidden>Share</button>
     <button id="reimport" class="btn" data-mgmt data-needs-net hidden>Re-import</button>
+    <button id="autotag" class="btn" data-mgmt data-needs-net hidden>Suggest tags</button>
     <button id="edit" class="btn" data-mgmt data-needs-net hidden>Edit</button>
   </header>
   <div class="sticky noprint">
@@ -59,6 +62,7 @@
     <form id="editor" hidden>
       <div class="row"><input id="f-title" placeholder="Title" required><input id="f-artist" placeholder="Artist"></div>
       <div class="row"><input id="f-key" placeholder="Key (e.g. Am)"><input id="f-capo" type="number" min="0" max="12" placeholder="Capo"><input id="f-tags" placeholder="Tags, comma separated"></div>
+      <div class="row"><button type="button" id="suggest-tags" class="btn">Suggest tags</button></div>
       <textarea id="f-body" spellcheck="false"></textarea>
       <div class="row"><button class="primary">Save changes</button><button type="button" id="cancel" class="btn">Cancel</button><button type="button" id="del" class="danger btn">Delete song</button></div>
     </form>

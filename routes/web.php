@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\MedleyController;
 use App\Http\Controllers\Api\MeController;
+use App\Http\Controllers\Api\MedleyController;
 use App\Http\Controllers\Api\PreferenceController;
 use App\Http\Controllers\Api\SetlistController;
 use App\Http\Controllers\Api\ShareController;
@@ -34,6 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/songs/{id}/opened', [SongController::class, 'opened'])->where('id', '[a-z0-9-]+');
     Route::post('/api/songs/preview', [SongController::class, 'preview']);
     Route::post('/api/songs/import', [SongController::class, 'import']);
+    Route::post('/api/songs/tags', [SongController::class, 'suggestTags']);
+    Route::post('/api/songs/autotag', [SongController::class, 'autotagMissing']);
+    Route::post('/api/songs/{id}/autotag', [SongController::class, 'autotag'])->where('id', '[a-z0-9-]+');
     Route::post('/api/songs/{id}/reimport', [SongController::class, 'reimport'])->where('id', '[a-z0-9-]+');
     Route::post('/api/songs/{id}/replace', [SongController::class, 'replace'])->where('id', '[a-z0-9-]+');
     Route::put('/api/songs/{id}', [SongController::class, 'update'])->where('id', '[a-z0-9-]+');
@@ -48,6 +51,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/api/medleys', [MedleyController::class, 'index']);
     Route::post('/api/medleys', [MedleyController::class, 'store']);
+    Route::post('/api/medleys/suggestions', [MedleyController::class, 'suggestions']);
     Route::get('/api/medleys/{id}', [MedleyController::class, 'show'])->where('id', '[a-z0-9-]+');
     Route::get('/api/medleys/{id}/full', [MedleyController::class, 'full'])->where('id', '[a-z0-9-]+');
     Route::put('/api/medleys/{id}', [MedleyController::class, 'update'])->where('id', '[a-z0-9-]+');

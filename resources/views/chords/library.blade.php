@@ -47,7 +47,9 @@
     <p id="empty" class="muted" hidden style="padding: 16px">Nothing here yet. Choose Add Song and paste a link.</p>
     <div class="library-foot foot">
       <button id="offline-save" class="btn">Save for offline</button>
+      <button id="tag-untagged" class="btn" data-needs-net hidden>Tag untagged</button>
       <span id="offline-msg" class="muted"></span>
+      <span id="tag-msg" class="muted"></span>
     </div>
   </section>
 
@@ -126,6 +128,26 @@
       <div class="dlgactions">
         <button type="submit" id="doPreview" class="primary" formnovalidate>Import</button>
         <button type="button" id="doBack" class="btn" hidden>Back</button>
+      </div>
+    </div>
+
+    <div id="step-preview" hidden>
+      <p id="dupnote" class="warn" hidden></p>
+      <div class="row"><input id="ftitle" placeholder="Title" autocomplete="off"><input id="fartist" placeholder="Artist" autocomplete="off"></div>
+      <div class="row">
+        <label class="field">Key <input id="fkey" placeholder="e.g. Am" autocomplete="off"><span id="fkeyhint" class="muted" hidden>guessed</span></label>
+        <label class="field">Capo <input id="fcapo" type="number" min="0" max="12" placeholder="0"></label>
+      </div>
+      <div class="tagpick">
+        <span class="tagpick-label">Categories</span>
+        <div id="ftags-chips" class="tags"></div>
+        <p id="ftags-note" class="muted" hidden></p>
+        <input id="ftags" type="text" placeholder="Add new (comma separated)" autocomplete="off">
+      </div>
+      <label id="fsourcewrap" class="field" hidden>Source <input id="fsource" type="url" autocomplete="off"></label>
+      <div id="sheetprev" class="preview"></div>
+      <div class="dlgactions">
+        <button type="button" id="doBack" class="btn">Back</button>
         <a id="doOpen" class="btn primary" hidden>Open existing</a>
         <button type="submit" id="doSave" class="primary" hidden>Save song</button>
       </div>

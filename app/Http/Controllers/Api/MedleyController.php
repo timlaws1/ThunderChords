@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\LibraryService;
+use App\Services\MedleySuggester;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MedleyController extends Controller
 {
-    public function __construct(private LibraryService $lib) {}
+    public function __construct(
+        private LibraryService $lib,
+        private MedleySuggester $suggester,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -78,6 +82,32 @@ class MedleyController extends Controller
         $medley->load(['items.song']);
 
         return response()->json($medley->toApiArray());
+    }
+
+    public function suggestions(Request $request): JsonResponse
+    {
+        $songs = $request->input('songs', []);
+        if (! is_array($songs) || $songs === []) {
+            return response()->json(['error' => 'Add a song first.'], 400);
+        }
+
+        $slugs = [];
+        foreach (array_slice($songs, 0, 200) as $slug) {
+            if (is_string($slug) && preg_match('/^[a-z0-9-]+$/', $slug) === 1) {
+                $slugs[] = $slug;
+            }
+        }
+        if ($slugs === [] || ! $request->user()->songs()->whereIn('slug', $slugs)->exists()) {
+            return response()->json(['error' => 'Add a song first.'], 400);
+        }
+
+        return response()->json([
+            'suggestions' => $this->suggester->suggest(
+                $request->user(),
+                $slugs,
+                $this->lib->one($request->input('targetKey', '')),
+            ),
+        ]);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
