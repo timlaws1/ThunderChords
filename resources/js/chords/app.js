@@ -229,8 +229,19 @@ function setMode(m) {
 }
 
 function showStep(step) {
+  const checking = step === 'preview'
   $('#step-input').hidden = step !== 'input'
   $('#step-preview').hidden = step !== 'preview'
+  dlg.classList.toggle('checking', checking)
+  $('#doPreview').hidden = checking
+  $('#doBack').hidden = !checking
+  if (!checking) {
+    $('#doOpen').hidden = true
+    $('#doSave').hidden = true
+  } else {
+    $('#doSave').hidden = false
+    $('#doSave').disabled = false
+  }
   $('#err').textContent = ''
 }
 
@@ -242,7 +253,6 @@ function resetDialog() {
   setMode('link')
   $('#dupnote').hidden = true
   $('#doOpen').hidden = true
-  $('#doSave').hidden = false
   $('#doSave').disabled = false
   $('#fkeyhint').hidden = true
   $('#sheetprev').innerHTML = ''
@@ -301,8 +311,8 @@ function showPreview(d) {
   $('#ftags').value = ''
   $('#sheetprev').innerHTML = `<div class="sheet">${renderSheet(d.body)}</div>`
   renderImportTags()
-  syncDupActions()
   showStep('preview')
+  syncDupActions()
   ;(d.duplicateId ? $('#doOpen') : $('#ftitle')).focus()
 }
 $('#fsource').oninput = syncDupActions

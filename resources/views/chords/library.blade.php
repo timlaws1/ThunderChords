@@ -89,45 +89,47 @@
       <button type="button" id="close" class="iconbtn" aria-label="Close">✕</button>
     </header>
 
-    <div id="step-input">
-      <div class="modes" role="tablist">
-        <button type="button" class="mode on" data-mode="link" role="tab" aria-selected="true">Link</button>
-        <button type="button" class="mode" data-mode="paste" role="tab" aria-selected="false">Paste</button>
+    <div class="dlgbody">
+      <div id="step-input">
+        <div class="modes" role="tablist">
+          <button type="button" class="mode on" data-mode="link" role="tab" aria-selected="true">Link</button>
+          <button type="button" class="mode" data-mode="paste" role="tab" aria-selected="false">Paste</button>
+        </div>
+        <div id="mode-link" class="modepane">
+          <input id="url" type="url" placeholder="https://tabs.ultimate-guitar.com/..." autocomplete="off">
+        </div>
+        <div id="mode-paste" class="modepane" hidden>
+          <div class="row"><input id="ptitle" placeholder="Title" autocomplete="off"><input id="partist" placeholder="Artist" autocomplete="off"></div>
+          <textarea id="text" placeholder="Paste the chord sheet here" spellcheck="false"></textarea>
+        </div>
       </div>
-      <div id="mode-link" class="modepane">
-        <input id="url" type="url" placeholder="https://tabs.ultimate-guitar.com/..." autocomplete="off">
+
+      <div id="step-preview" hidden>
+        <p id="dupnote" class="warn" hidden></p>
+        <div class="row"><input id="ftitle" placeholder="Title" autocomplete="off"><input id="fartist" placeholder="Artist" autocomplete="off"></div>
+        <div class="row">
+          <label class="field">Key <input id="fkey" placeholder="e.g. Am" autocomplete="off"><span id="fkeyhint" class="muted" hidden>guessed</span></label>
+          <label class="field">Capo <input id="fcapo" type="number" min="0" max="12" placeholder="0"></label>
+        </div>
+        <label id="fsourcewrap" class="field" hidden>Source <input id="fsource" type="url" autocomplete="off"></label>
+        <div id="sheetprev" class="preview"></div>
+        <div class="tagpick">
+          <span class="tagpick-label">Categories</span>
+          <div id="ftags-chips" class="tags"></div>
+          <input id="ftags" type="text" placeholder="Add new (comma separated)" autocomplete="off">
+        </div>
       </div>
-      <div id="mode-paste" class="modepane" hidden>
-        <div class="row"><input id="ptitle" placeholder="Title" autocomplete="off"><input id="partist" placeholder="Artist" autocomplete="off"></div>
-        <textarea id="text" placeholder="Paste the chord sheet here" spellcheck="false"></textarea>
-      </div>
+    </div>
+
+    <div class="dlgfoot">
+      <p id="err" class="err" role="alert"></p>
       <div class="dlgactions">
         <button type="submit" id="doPreview" class="primary" formnovalidate>Import</button>
-      </div>
-    </div>
-
-    <div id="step-preview" hidden>
-      <p id="dupnote" class="warn" hidden></p>
-      <div class="row"><input id="ftitle" placeholder="Title" autocomplete="off"><input id="fartist" placeholder="Artist" autocomplete="off"></div>
-      <div class="row">
-        <label class="field">Key <input id="fkey" placeholder="e.g. Am" autocomplete="off"><span id="fkeyhint" class="muted" hidden>guessed</span></label>
-        <label class="field">Capo <input id="fcapo" type="number" min="0" max="12" placeholder="0"></label>
-      </div>
-      <div class="tagpick">
-        <span class="tagpick-label">Categories</span>
-        <div id="ftags-chips" class="tags"></div>
-        <input id="ftags" type="text" placeholder="Add new (comma separated)" autocomplete="off">
-      </div>
-      <label id="fsourcewrap" class="field" hidden>Source <input id="fsource" type="url" autocomplete="off"></label>
-      <div id="sheetprev" class="preview"></div>
-      <div class="dlgactions">
-        <button type="button" id="doBack" class="btn">Back</button>
+        <button type="button" id="doBack" class="btn" hidden>Back</button>
         <a id="doOpen" class="btn primary" hidden>Open existing</a>
-        <button type="submit" id="doSave" class="primary">Save song</button>
+        <button type="submit" id="doSave" class="primary" hidden>Save song</button>
       </div>
     </div>
-
-    <p id="err" class="err" role="alert"></p>
   </form>
 </dialog>
 @endsection

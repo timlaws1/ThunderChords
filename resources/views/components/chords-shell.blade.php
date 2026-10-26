@@ -14,7 +14,7 @@
   <aside class="sidebar dash-side" id="dash-side" aria-label="Main navigation">
     <div class="brand-row dash-brand">
       <a href="/" class="brand" aria-label="Chords home">
-        <span class="brand-mark" aria-hidden="true">♩</span>
+        <img src="logo.png" width="25" height="25"/>
         Chords
       </a>
       <button type="button" class="nav-close iconbtn" id="nav-close" aria-label="Close menu">&times;</button>
