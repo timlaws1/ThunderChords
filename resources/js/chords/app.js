@@ -252,14 +252,18 @@ function showStep(step) {
   $('#step-input').hidden = step !== 'input'
   $('#step-preview').hidden = step !== 'preview'
   dlg.classList.toggle('checking', checking)
-  $('#doPreview').hidden = checking
-  $('#doBack').hidden = !checking
+  const doPreview = $('#doPreview')
+  const doBack = $('#doBack')
+  const doOpen = $('#doOpen')
+  const doSave = $('#doSave')
+  if (doPreview) doPreview.hidden = checking
+  if (doBack) doBack.hidden = !checking
   if (!checking) {
-    $('#doOpen').hidden = true
-    $('#doSave').hidden = true
-  } else {
-    $('#doSave').hidden = false
-    $('#doSave').disabled = false
+    if (doOpen) doOpen.hidden = true
+    if (doSave) doSave.hidden = true
+  } else if (doSave) {
+    doSave.hidden = false
+    doSave.disabled = false
   }
   $('#err').textContent = ''
 }
